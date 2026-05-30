@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DR Horton Inventory Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1800px; margin: 0 auto; }
+
+    h1 { margin-bottom: 5px; color: #333; }
+    .subtitle { color: #666; margin-bottom: 15px; font-size: 13px; }
+
+    .data-load {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+
+    .data-load-header {
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid #eee;
+    }
+
+    .data-load-header:hover {
+      background: #f9f9f9;
+    }
+
+    .data-load-header label {
+      font-weight: bold;
+      margin: 0;
+      color: #333;
+      font-size: 13px;
+    }
+
+    .collapse-icon {
+      color: #666;
+      font-size: 18px;
+      transition: transform 0.2s;
+      display: flex;
+      align-items: center;
+    }
+
+    .collapse-icon.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .data-load-content {
+      padding: 15px 20px;
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s, padding 0.3s;
+    }
+
+    .data-load-content.collapsed {
+      max-height: 0;
+      padding: 0 20px;
+    }
+
+    .load-button {
+      padding: 8px 16px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .load-button:hover { background: #218838; }
+    .load-status { margin-top: 10px; font-weight: bold; font-size: 13px; }
+    .load-status.success { color: #28a745; }
+    .load-status.error { color: #dc3545; }
+
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .filter-group label {
+      font-weight: bold;
+      font-size: 12px;
+      color: #333;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      padding: 7px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button {
+      padding: 8px 16px;
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    button:hover { background: #0052a3; }
+    button.secondary {
+      background: #666;
+    }
+    button.secondary:hover {
+      background: #555;
+    }
+
+    .results-info {
+      background: white;
+      padding: 10px 20px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: #0066cc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      gap: 10px;
+    }
+
+    .results-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .export-btn, .print-btn {
+      padding: 6px 12px;
+      background: #6c757d;
+      font-size: 11px;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .export-btn:hover, .print-btn:hover { background: #5a6268; }
+
+    @media print {
+      body { padding: 0; }
+      .data-load, .filters, .results-info { display: none !important; }
+      .table-container { box-shadow: none; }
+      .project-badge { background: none; color: #000; }
+      .milestone { background: none; color: #000; }
+    }
+
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: visible;
+      position: relative;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead {
+      background: #f0f0f0;
+      position: sticky;
+      top: 0;
+    }
+
+    th {
+      padding: 8px 5px;
+      text-align: left;
+      font-weight: bold;
+      border-bottom: 2px solid #ddd;
+      color: #333;
+      background: #f0f0f0;
+      white-space: nowrap;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover {
+      background: #e0e0e0;
+    }
+
+    th.sort-asc::after {
+      content: ' ▲';
+      font-size: 10px;
+    }
+
+    th.sort-desc::after {
+      content: ' ▼';
+      font-size: 10px;
+    }
+
+    td {
+      padding: 6px 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    .price {
+      font-weight: bold;
+      color: #0066cc;
+      text-align: center;
+      padding: 6px 3px !important;
+      font-size: 11px;
+    }
+
+    .milestone {
+      display: inline-block;
+      background: #e8f0ff;
+      color: #0066cc;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+      min-width: 30px;
+      text-align: center;
+    }
+
+    .milestone.presale { background: #e8ffe8; color: #008800; }
+    .milestone.incentives { background: #fff8e8; color: #cc8800; }
+    .milestone.closing { background: #ffe8e8; color: #cc0000; }
+    .milestone.empty { background: #d4a574; color: #5c3d2e; }
+
+    .no-results {
+      padding: 40px;
+      text-align: center;
+      color: #999;
+    }
+
+    .project-badge {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .centered { text-align: center; }
+
+    .filter-section-header {
+      font-size: 11px;
+      font-weight: bold;
+      color: #666;
+      text-transform: uppercase;
+      margin: 15px 0 8px 0;
+      padding: 0;
+      border-top: 1px solid #e0e0e0;
+      grid-column: 1 / -1;
+    }
+
+    .search-section {
+      grid-column: 1 / -1;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .search-section-header {
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      font-size: 11px;
+      font-weight: bold;
+      color: #666;
+      text-transform: uppercase;
+      border-bottom: 1px solid #eee;
+    }
+
+    .search-section-header:hover {
+      background: #f9f9f9;
+    }
+
+    .search-section-header .section-arrow {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      transition: transform 0.2s;
+    }
+
+    .search-section-header .section-arrow.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .search-section-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 12px;
+      padding: 15px 15px;
+      max-height: 1000px;
+      overflow: hidden;
+      transition: max-height 0.3s, padding 0.3s;
+    }
+
+    .search-section-content.collapsed {
+      max-height: 0;
+      padding: 0 15px;
+    }
+
+    .search-section-header-subsection {
+      font-size: 11px;
+      font-weight: bold;
+      color: #666;
+      text-transform: uppercase;
+      margin: 10px 0 8px 0;
+      padding: 0;
+      grid-column: 1 / -1;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    input[type="number"]::placeholder {
+      color: #bbb;
+    }
+
+    select[multiple] {
+      min-height: 80px;
+      padding: 5px;
+    }
+
+    select[multiple] option {
+      padding: 3px 5px;
+      line-height: 1.4;
+    }
+
+    select[multiple] option:checked {
+      background: #0066cc linear-gradient(#0066cc, #0066cc);
+      color: white;
+    }
+
+    .button-group {
+      grid-column: 1 / -1;
+    }
+
+    .results-info span {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    th:nth-child(1) { width: 80px; }
+    th:nth-child(2) { width: 200px; }
+    th:nth-child(7), th:nth-child(8), th:nth-child(9), th:nth-child(10) { width: 50px; }
+
+    .community-name {
+      cursor: help;
+      border-bottom: 1px dotted #0066cc;
+      position: relative;
+    }
+
+    .community-name {
+      cursor: pointer;
+      border-bottom: 1px dotted #0066cc;
+      color: #0066cc;
+    }
+
+    .community-name:hover {
+      text-decoration: underline;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 700px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      color: #333;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #0066cc;
+      margin-bottom: 20px;
+      margin-top: 0;
+      padding-right: 30px;
+    }
+
+    .modal-section {
+      margin-bottom: 20px;
+    }
+
+    .modal-section-title {
+      font-weight: bold;
+      color: #0066cc;
+      font-size: 13px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 6px;
+    }
+
+    .modal-section-content {
+      color: #333;
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .modal-link {
+      color: #0066cc;
+      text-decoration: underline;
+      font-weight: bold;
+      margin-top: 10px;
+      display: inline-block;
+    }
+
+    .modal-link:hover {
+      color: #0052a3;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+
+    .modal-edit-btn, .modal-save-btn, .modal-cancel-btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .modal-edit-btn {
+      background: #0066cc;
+      color: white;
+    }
+
+    .modal-edit-btn:hover {
+      background: #0052a3;
+    }
+
+    .modal-save-btn {
+      background: #28a745;
+      color: white;
+    }
+
+    .modal-save-btn:hover {
+      background: #218838;
+    }
+
+    .modal-cancel-btn {
+      background: #666;
+      color: white;
+    }
+
+    .modal-cancel-btn:hover {
+      background: #555;
+    }
+
+    .modal-section textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .modal-section input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    #modalBody.edit-mode .modal-section-content {
+      display: none;
+    }
+
+    #modalBody.edit-mode .modal-section-edit {
+      display: block !important;
+    }
+
+    #modalBody:not(.edit-mode) .modal-section-edit {
+      display: none !important;
+    }
+
+    .tooltip-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #666;
+      padding-bottom: 6px;
+    }
+
+    .tooltip-section {
+      margin-bottom: 8px;
+    }
+
+    .tooltip-section-title {
+      font-weight: bold;
+      color: #4da3ff;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DR Horton Inventory Dashboard</h1>
+    <p class="subtitle">Fast filtering and search across all communities</p>
+
+    <div class="data-load">
+      <div class="data-load-header" onclick="toggleDataLoad()">
+        <label>Load Data</label>
+        <span class="collapse-icon" id="collapseIcon">▼</span>
+      </div>
+
+      <div class="data-load-content" id="dataLoadContent">
+        <p style="font-size: 12px; margin: 0 0 10px 0; color: #666;">Upload your inventory data:</p>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+          <button class="load-button" onclick="document.getElementById('fileInput').click()" style="background: #17a2b8;">Upload JSON File</button>
+        </div>
+
+        <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadFromFile(event)">
+
+        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 11px; color: #666;">
+          <strong>To export and save data:</strong>
+          <ol style="margin-left: 20px; margin-top: 8px;">
+            <li>Open DHI Sales in your browser</li>
+            <li>Open DevTools (F12) → Console tab</li>
+            <li>Paste this code and press Enter:
+              <pre style="background: #fff; padding: 8px; margin-top: 5px; border-radius: 3px; overflow-x: auto; font-size: 10px;">fetch('https://homesales.drhorton.com/Inventory/Home/GetInventorySearch?businessUnit=75%7CDivision&MonthlyPayment=0&PercentOfTolerance=0&filterData=false&_=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'drhorton-inventory.json';
+    a.click();
+  });</pre>
+            </li>
+            <li>File downloads automatically - then upload it here</li>
+          </ol>
+        </div>
+
+        <div class="load-status" id="loadStatus"></div>
+      </div>
+    </div>
+
+    <div class="search-section">
+      <div class="search-section-header" onclick="toggleSearchSection()">
+        <label>Search & Basic Info</label>
+        <span class="section-arrow" id="searchArrow">▼</span>
+      </div>
+
+      <div class="search-section-content" id="searchContent">
+        <div class="filter-group">
+          <label>Search Address/Lot#</label>
+          <input type="text" id="addressSearch" placeholder="Address or Lot#..." oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label>Community</label>
+          <select id="projectSearch" multiple onchange="updateModelOptions(); applyFilters()">
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Floor Plan / Model</label>
+          <select id="planCode" multiple onchange="applyFilters()">
+            <option value="1381">1381 - Altamont</option>
+            <option value="1418">1418 - Pearson</option>
+            <option value="1419">1419 - Pearson Rear Load</option>
+            <option value="1420">1420 - Pearson</option>
+            <option value="1461">1461 - Maywood</option>
+            <option value="1462">1462 - Newton</option>
+            <option value="1497">1497 - Freeport</option>
+            <option value="1498">1498 - Freeport</option>
+            <option value="1510">1510 - Jonathan</option>
+            <option value="1554">1554 - Mitchell</option>
+            <option value="1564">1564 - Denver</option>
+            <option value="1566">1566 - Sydney</option>
+            <option value="1582">1582 - Beckett</option>
+            <option value="1613">1613 - Taylor</option>
+            <option value="1615">1615 - Payton</option>
+            <option value="1620">1620 - Aria</option>
+            <option value="1658">1658 - Pattison</option>
+            <option value="1673">1673 - Bristol</option>
+            <option value="1698">1698 - Lansing</option>
+            <option value="1749">1749 - Darwin</option>
+            <option value="1750">1750 - Darwin</option>
+            <option value="1760">1760 - Carson</option>
+            <option value="1764">1764 - Cali</option>
+            <option value="1765">1765 - Cali</option>
+            <option value="1797">1797 - Clifton</option>
+            <option value="1821">1821 - Haywood</option>
+            <option value="1823">1823 - Collin</option>
+            <option value="1825">1825 - Blake</option>
+            <option value="1878">1878 - Sophie</option>
+            <option value="1883">1883 - Dover</option>
+            <option value="1892">1892 - Booth</option>
+            <option value="1900">1900 - Azalea</option>
+            <option value="1906">1906 - Aberdeen</option>
+            <option value="1991">1991 - Belhaven</option>
+            <option value="1992">1992 - Belhaven</option>
+            <option value="1998">1998 - Blakley</option>
+            <option value="2057">2057 - Walden</option>
+            <option value="2147">2147 - Ellis</option>
+            <option value="2163">2163 - Penwell</option>
+            <option value="2164">2164 - Penwell</option>
+            <option value="2174">2174 - Elston</option>
+            <option value="2203">2203 - Manning</option>
+            <option value="2222">2222 - Spencer</option>
+            <option value="2283">2283 - Hadleigh</option>
+            <option value="2290">2290 - Kathryn</option>
+            <option value="2315">2315 - Stella</option>
+            <option value="2340">2340 - Galen</option>
+            <option value="2341">2341 - Galen</option>
+            <option value="2361">2361 - Robie</option>
+            <option value="2363">2363 - Robie</option>
+            <option value="2396">2396 - Sierra</option>
+            <option value="2459">2459 - Cooper</option>
+            <option value="2511">2511 - Hayden</option>
+            <option value="2512">2512 - Hayden</option>
+            <option value="2531">2531 - Alec</option>
+            <option value="2532">2532 - Alec</option>
+            <option value="2561">2561 - Fleetwood</option>
+            <option value="2585">2585 - Landon</option>
+            <option value="2628">2628 - Calhoun</option>
+            <option value="2629">2629 - Calhoun</option>
+            <option value="2638">2638 - Jackson</option>
+            <option value="2639">2639 - Jackson</option>
+            <option value="2651">2651 - Edisto</option>
+            <option value="2792">2792 - Lucas</option>
+            <option value="2800">2800 - Wilmington</option>
+            <option value="2804">2804 - Hanover</option>
+            <option value="2896">2896 - Lawson</option>
+            <option value="2922">2922 - Summit</option>
+            <option value="2961">2961 - Olivia</option>
+            <option value="3081">3081 - Morgan</option>
+            <option value="3112">3112 - Hartwell</option>
+            <option value="3123">3123 - Hampshire</option>
+            <option value="3133">3133 - Jordan</option>
+            <option value="3142">3142 - Columbia</option>
+            <option value="3262">3262 - Norman</option>
+            <option value="3396">3396 - Tillery</option>
+            <option value="3475">3475 - Bennett</option>
+            <option value="3490">3490 - Wylie</option>
+            <option value="T203">T203 - Linville</option>
+            <option value="T336">T336 - Nash Rear Load</option>
+          </select>
+        </div>
+
+        <div class="search-section-header-subsection">Price Range</div>
+        <div class="filter-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label>Price:</label>
+            <span style="font-weight: bold; font-size: 14px;"><span id="priceMinDisplay">$0</span> - <span id="priceMaxDisplay">$999,999</span></span>
+          </div>
+          <input type="range" id="minPrice" min="0" max="999999" value="0" step="5000" oninput="applyFilters(); updatePriceDisplay()" style="width: 100%; margin-bottom: 5px;">
+          <input type="range" id="maxPrice" min="0" max="999999" value="999999" step="5000" oninput="applyFilters(); updatePriceDisplay()" style="width: 100%;">
+        </div>
+
+        <div class="search-section-header-subsection">Home Features</div>
+        <div class="filter-group">
+          <label>Beds Min</label>
+          <input type="number" id="bedsMin" placeholder="Any" min="0" oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label>Beds Max</label>
+          <input type="number" id="bedsMax" placeholder="Any" min="0" oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label>Baths Min</label>
+          <input type="number" id="bathsMin" placeholder="Any" min="0" step="0.5" oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label>Baths Max</label>
+          <input type="number" id="bathsMax" placeholder="Any" min="0" step="0.5" oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label>SQFT:</label>
+            <span style="font-weight: bold; font-size: 14px;"><span id="sqftMinDisplay">0</span> - <span id="sqftMaxDisplay">9,999</span></span>
+          </div>
+          <input type="range" id="minSqft" min="0" max="9999" value="0" step="100" oninput="applyFilters(); updateSqftDisplay()" style="width: 100%; margin-bottom: 5px;">
+          <input type="range" id="maxSqft" min="0" max="9999" value="9999" step="100" oninput="applyFilters(); updateSqftDisplay()" style="width: 100%;">
+        </div>
+
+        <div class="search-section-header-subsection">Financing & Payments</div>
+        <div class="filter-group">
+          <label>Financing Type</label>
+          <select id="financingType" onchange="applyFilters()">
+            <option value="">All Types</option>
+            <option value="Conventional">Conventional</option>
+            <option value="FHA">FHA</option>
+            <option value="VA">VA</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label>Monthly Payment:</label>
+            <span style="font-weight: bold; font-size: 14px;">$<span id="paymentMinDisplay">0</span> - $<span id="paymentMaxDisplay">9,999</span></span>
+          </div>
+          <input type="range" id="minPayment" min="0" max="9999" value="0" step="100" oninput="applyFilters(); updatePaymentDisplay()" style="width: 100%; margin-bottom: 5px;">
+          <input type="range" id="maxPayment" min="0" max="9999" value="9999" step="100" oninput="applyFilters(); updatePaymentDisplay()" style="width: 100%;">
+        </div>
+
+        <div class="search-section-header-subsection">Construction Status</div>
+        <div class="filter-group">
+          <label>Milestone Start</label>
+          <input type="number" id="milestoneStart" placeholder="0" min="0" max="13" oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <label>Milestone Stop</label>
+          <input type="number" id="milestoneStop" placeholder="13" min="0" max="13" oninput="applyFilters()">
+        </div>
+
+        <div style="grid-column: 1 / -1; margin-top: 10px;">
+          <button class="secondary" onclick="clearFilters()">Clear All</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="results-info" id="resultsInfo">
+      <span>Load data to see results...</span>
+      <div class="results-buttons">
+        <button class="export-btn" onclick="exportToCSV()">Export CSV</button>
+        <button class="print-btn" onclick="window.print()">Print</button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Lot#</th>
+              <th>Address</th>
+              <th>Community</th>
+              <th>Model</th>
+              <th>Elv</th>
+              <th>SQFT</th>
+              <th>Bed</th>
+              <th>Bath</th>
+              <th>Garage</th>
+              <th>Story</th>
+              <th>Milestone</th>
+              <th>Home Price</th>
+              <th>Monthly Payment</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="13" class="no-results">Load data to see results...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="communityModal" class="modal-overlay" onclick="closeCommunityModal(event)">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeCommunityModal()">×</button>
+        <h2 class="modal-title" id="modalTitle"></h2>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allHomes = [];
+    let currentSortColumn = null;
+    let currentSortOrder = 'asc';
+    let displayedHomes = [];
+
+    const communityData = {
+      'Anderson Farm': {        about: 'Anderson Farm is a thoughtfully planned new construction community in Wendell, NC, designed to support modern lifestyles. Conveniently located off Hwy 264, Anderson Farm offers the perfect balance of suburban comfort and city accessibility. Commuting is a breeze with quick access to major roadways, allowing easy travel to downtown Raleigh and surrounding areas. Restaurants, grocery stores, and everyday essentials are nearby – plus, Downtown Wendell and Wendell Falls are a short drive away when you’re in the mood to explore more dining, shopping, or entertainment options. Anderson Farm’s prime location supports both busy schedules and encourages quality time. Anderson Farm boasts an array of amenities designed for family enjoyment and active lifestyles, including a community pool and bathhouse, perfect for unwinding on a beautiful day. There is also a playground adjacent to the pool. Additional amenities include a sand volleyball court, a dog park, and a yoga/stretch lawn. Enjoy the greenway trail for scenic, leisurely walks and spend your mornings or evenings strolling on the paved sidewalks that wind throughout the community. New homes in Anderson Farm were thoughtfully designed to fit a variety of lifestyles. Modern finishes and smart home technology provide both comfort and style. Plans range from 1,901-2,824 sq. ft., feature three to five bedrooms, up to three bathrooms, and include options like flex rooms, lofts, extended front porches, and open living spaces. Kitchens with quartz countertops, functional islands, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Anderson Farm offers new homes in Wendell designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'Community Pool & Bathhouse Playground Sand Volleyball Court Dog Park Yoga/Stretch Lawn Greenway Trail Gas Range Tankless Water Heater Quartz Countertops Tile Backsplash in Kitchen Stainless Steel Appliances Home is Connected® Smart Home System Publix Super Market - 3.5 mi Wendell Country Club - 2.9 mi Knightdale - 5.3 mi The Shoppes at Midway Plantation - 6 mi Clayton - 12.5 mi Raleigh - 15 mi WakeMed North - 16.3 mi Wake Forest - 17.8 mi RDU Airport - 29 mi',        schools: 'Carver Elementary Public | K-5 mi. Wendell Middle Public | 6-8 mi. East Wake High Public | 9-12 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49742-anderson-farm/anderson_farm_-_site_map_overall_horizontal.jpg?rev=04d0a07a7504495a98186b1c2cd16816&hash=D68910B314C5225E3C7D988459653D88',        address: '1012 Octans Way, Wendell, NC 27591'      },
+      'Baker Farm': {        about: 'Discover new homes in Youngsville, NC, at Baker Farm, conveniently located near Hwy 98. Baker Farm is a thoughtfully planned new construction community designed to support modern lifestyles. Situated just off Hwy 98, Baker Farm offers the perfect balance of suburban comfort and city accessibility. Commuting is a breeze with quick access to major roadways, allowing easy travel to downtown Raleigh and surrounding areas. Restaurants, grocery stores, and everyday essentials are nearby – plus, Wake Forest is a short drive away when you’re in the mood to explore more dining, shopping, or entertainment options. Outdoor areas throughout the community, and spacious homesites, provide space for walks, play, and everyday moments outside. New homes in Baker Farm were thoughtfully designed to fit a variety of lifestyles. Modern finishes and smart home technology provide both comfort and style. Plans range from 1,764-2,824 sq. ft., feature three to four bedrooms, two to three bathrooms, and include options like flex rooms, lofts, spacious homesites, and open living spaces. Kitchens with quartz countertops, functional islands, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Baker Farm offers new homes in Youngsville designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: '.50+ acre Homesites Quartz Countertops Ceramic Tile Backsplash in Kitchen Stainless steel appliances Home is Connected Smart Home System Bunn - 6.4 mi Rolesville - 7.3 mi Fantasy Lake Adventure Park - 8.8 mi Wake Forest - 10.2 mi E. Carroll Joyner Park - 11.3 mi Raleigh - 23.2 mi RDU Airport - 33.5 mi 10 minutes - grocery, restaurants, shopping',        schools: 'Royal Elementary Public | K-5 mi. Bunn Middle School Public | 6-8 mi. Bunn High School Public | 9-12 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/78643-baker-farm/baker_farm_site_map_-_overall.jpg?rev=8dc9807094a148dd9f9f72b040b2d6e9&hash=125539CF95F4B9240DEE95E0C25E2D13',        address: '15 Baker Farm Dr, Youngsville, NC 27596'      },
+      'Barwell Park': {        about: 'Discover new homes in Raleigh, NC, at Barwell Park, conveniently located off Rock Quarry Rd, this community offers easy access to major highways and roadways, making commuting simple while keeping everyday essentials close to home. Situated close to I-40, I-440, Garner, and Downtown Raleigh, Barwell Park offers the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are all a short drive away, providing the convenience you’ve been looking for. New homes in Barwell Park feature 2,511 sq. ft., five bedrooms, three bathrooms, and 2-car garages. Open-concept layouts connect the kitchen, dining, and living areas, while LED lighting and smart home technology add convenience and efficiency throughout the home. Kitchens with quartz countertops, ample cabinet space, and stainless-steel appliances create clean and functional space for cooking, gathering, or entertaining friends. At Barwell Park life feels balanced, comfortable, and connected—making it easy to settle in and feel right at home. It’s about more than just a house, it’s about creating a place where memories are made, traditions begin, and families can truly feel at home. Schedule a tour today!',        amenities: 'Direct access to Barwell Road Community Center & Park I-40 - 4.2 mi I-440 - 4.5 mi River Ridge Golf Club - 2.5 mi Coastal Credit Union Music Park - 2.9 mi Neuse River Trail - 3 mi Anderson Point Park - 4.5 mi Southeast Raleigh YMCA - 4.7 mi Raleigh Country Club - 5.2 mi White Oak Crossing - 5.8 mi Garner - 5.8 mi WakeMed Raleigh Campus - 6 mi Downtown Raleigh - 7 mi Dix Park - 7.4 mi Pullen Park - 8.2 mi NC State University - 8.4 mi Knightdale Station Park - 9.1 mi Wake Tech Community College North Campus - 15 mi RDU International Airport - 24 mi Quartz countertops Stainless steel appliances Home is Connected® Smart Home System',        schools: 'Barwell Road Elementary School Public | K-5 0.3 mi. East Garner Magnet Middle School Public | 6-8 2.6 mi. South Garner High School Public | 9-12 5.1 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49732-barwell-park/barwell_park-site_map_overall.jpg?rev=6573edd3f0eb4f9fa04dd7653cc6dc1c&hash=B97133AC92120552754504FD3A36BDF5',        address: '3627 Turney Dr, Raleigh, NC 27610'      },
+      'Battle Crossings': {        about: 'Discover new townhomes at Battle Crossings conveniently located in Raleigh, NC. This community offers easy access to major highways and roadways, making commuting simple while keeping everyday essentials close by. Situated near the corner of Battle Bridge Rd and Whitfield Rd, close to I-40, I-440, US-70, Garner, and Downtown Raleigh, Battle Crossings offers the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are all a short drive away, providing the convenience you’ve been looking for. New townhomes in Battle Crossings feature 1,418 sq. ft., three bedrooms, two and a half bathrooms, and 1-car garages. Open-concept layouts connect the kitchen, dining, and living areas, while LED lighting and smart home technology add convenience and efficiency throughout the home. Kitchens with quartz countertops, ample cabinet space, and stainless-steel appliances create clean and functional space for cooking, gathering, or entertaining friends. Battle Crossings offers new townhomes in Raleigh designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'River Ridge Golf Club - 1.1 mi Neuse River Trail - 2.8 mi I-40 - 3.7 mi Coastal Credit Union Music Park - 3.9 mi US-70 - 4.5 mi I-440 - 5.6 mi White Oak Crossing - 5.4 mi Downtown Garner - 5.6 mi Southeast Raleigh YMCA - 5.8 mi WakeMed Raleigh Campus - 6.6 mi Downtown Raleigh - 7.6 mi Dix Park - 8.4 mi Lake Benson Park - 8.7 mi Pullen Park - 9.1 mi NC State University - 9.5 mi Wake Tech Community College North Campus - 14.1 mi RDU International Airport - 24.5 mi Quartz countertops Stainless steel appliances Home is Connected® Smart Home System',        schools: 'East Garner Elementary School Public | K-5 3 mi. East Garner Magnet Middle School Public | 6-8 3.2 mi. South Garner High School Public | 9-12 5.1 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/78721-battle-crossings/battle_crossings_-_site_map.jpg?rev=f05581d0d141463aba026e6c012bd065&hash=43C803559407C3494F034CB3D7C7395A',        address: '7110 Battle Bridge Road, Raleigh, NC 27610'      },
+      'Belle Grove SFA': {        about: 'Discover new homes in Wendell, NC, at The Townes at Belle Grove, conveniently located off Lions Club Rd. Situated less than two miles from Wendell, The Townes at Belle Grove offers the perfect balance of suburban comfort and city accessibility. Commuting is a breeze with quick access to major roadways, allowing easy travel to downtown Raleigh and surrounding areas. Restaurants, grocery stores, and everyday essentials are nearby – plus, The Shoppes at Midway Plantation is a short drive away when you’re in the mood to explore more dining, shopping, or entertainment options. Community amenities include pickleball courts, a playground, dog park, and walking trail. Plus, bask in the beauty of the public art piece centrally located within the community. New townhomes in The Townes at Belle Grove range from 1,418-1,618 sq. ft., feature three bedrooms, two and a half bathrooms, and 1-car garages. Open-concept layouts connect the kitchen, dining, and living areas, while LED lighting and smart home technology add convenience and efficiency throughout the home. Kitchens with quartz countertops, plenty of cabinet space, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, The Townes at Belle Grove offers new homes in Wendell designed for the way people live today. It’s more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come.',        amenities: 'Pickleball Courts Playground & Swingset Dog Park Walking Trail & Sidewalks Public Art Piece Quartz Countertops Stainless Steel Appliances Downtown Wendell - 1.5 mi Downtown Raleigh - 18.7 mi Neuse River Trail - 13 mi The Shoppes at Midway Plantation - 9.8 mi Wendell Country Club - 2.9 mi RDU Airport - 32 mi',        schools: 'Zebulon Elementary School Public | K-5 4.9 mi. Zebulon Middle School Public | 6-8 4.6 mi. East Wake High School Public | 9-12 5 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/78710-belle-grove/townes_at_belle_grove_-_site_map.jpg?rev=835dd205bee24afd9328757dff9cae00&hash=2D0E1DB8BADA2976587FCA7049CA8402',        address: '568 Stream Walk Crossing, Wendell, NC 27591'      },
+      'Belle Grove SFD': {        about: 'Discover new homes in Wendell, NC, at Belle Grove, conveniently located off Lions Club Rd. Belle Grove is a thoughtfully planned new construction community designed to support modern lifestyles. Situated less than two miles from Wendell, Belle Grove offers the perfect balance of suburban comfort and city accessibility. Commuting is a breeze with quick access to major roadways, allowing easy travel to downtown Raleigh and surrounding areas. Restaurants, grocery stores, and everyday essentials are nearby – plus, The Shoppes at Midway Plantation is a short drive away when you’re in the mood to explore more dining, shopping, or entertainment options. Community amenities include pickleball courts, a playground, dog park, and walking trail. Plus, bask in the beauty of the public art piece centrally located within the community. New homes in Belle Grove were thoughtfully designed to fit a variety of lifestyles. Plans range from 1,613-2,368 sq. ft., feature three to five bedrooms, two and a half to three bathrooms, and include options like flex rooms, lofts, 2-car garages, and open living spaces. Open-concept layouts connect the kitchen, dining, and living areas, while LED lighting and smart home technology add convenience and efficiency throughout the home. Kitchens with quartz countertops, functional islands, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Belle Grove offers new homes in Wendell designed for the way people live today. It’s more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come.',        amenities: 'Pickleball Courts Playground Dog Park Walking Trail & Sidewalks Public Art Piece Quartz Countertops Stainless Steel Appliances Downtown Wendell - 1.5 mi Downtown Raleigh - 18.7 mi Neuse River Trail - 13 mi The Shoppes at Midway Plantation - 9.8 mi Wendell Country Club - 2.9 mi RDU Airport - 32 mi',        schools: 'Zebulon Elementary School Public | K-5 4.9 mi. Zebulon Middle School Public | 6-8 4.6 mi. East Wake High School Public | 9-12 5 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/78709-belle-grove/belle_grove_-_site_map.jpg?rev=b505a8759c274dfb83b734788b4f0502&hash=FBD7BBEA67F4E02BE0227DD476CEEFD4',        address: '568 Stream Walk Crossing, Wendell, NC 27591'      },
+      'Bexford - Single Family': {        about: 'Discover new homes in Willow Spring, NC at Bexford, conveniently located near the newly completed Hwy 540 extension making commuting simple while keeping everyday essentials close to home. Situated near Hwy 401, Hwy 42, Downtown Fuquay-Varina, NC State University, Costco, and a short drive to Raleigh, Bexford provides the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are just a short drive away, providing the convenience today’s homeowners are looking for. Bexford is also located within the Wake County School District, making it the perfect choice for families with school-aged children. Bexford is a thoughtfully planned new construction community in Willow Spring, designed to support modern lifestyles. Community amenities will include a pool and bathhouse – plus, walking trails throughout the community connect to the Middle-Creek Greenway for leisurely afternoon strolls. Additional amenities will include a fitness park, playground and swingswet, dog park, community pavilion, and more! New homes in Bexford range from 1,764-2,824 sq. ft. and feature three to five bedrooms, two to three bathrooms, and 2-car garages. The open floorplan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. Modern finishes and smart home technology provide both comfort and style. Kitchens with quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. Bexford is a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community. With its prime location, variety of floor plan offerings, and modern features, Bexford is more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come.',        amenities: 'Future community pool & clubhouse Future fitness park Future playground and swingset Future dog park Future community pavilion Future cornhole, yoga lawn, pollinator park, and walking paths w/ benches Wake County Schools Fiber Cement Siding Quartz Countertops Tile Backsplash Downtown Raleigh - 15 mi Costo - 5 mi Bentwinds Country Club - 5.3 mi Carroll Howard Johnson Environmental Park - 6.7 mi RDU International Airport - 24.5 mi UNC Healthcare 2.9 mi',        schools: 'Banks Road Elementary Public | PK-5 2.4 mi. West Lake Middle School Public | 6-8 5 mi. Willow Spring High School Public | 9-12 1.8 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/78648-bexford/bexford_-_site_map_single_family.jpg?rev=23d677e3bc6b4f7988c5c2391551b53c&hash=F0979D5FF6D8C180A13C95578AB8AF21',        address: '5004 Red Blush Way, Willow Spring, NC 27592'      },
+      'Bexford - Townes': {        about: 'Discover new homes in Willow Spring, NC at The Townes at Bexford, conveniently located near the newly completed Hwy 540 extension making commuting simple while keeping everyday essentials close to home. Situated near Hwy 401, Hwy 42, Downtown Fuquay-Varina, NC State University, Costco, and a short drive to Raleigh, The Townes at Bexford provides the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are just a short drive away, providing the convenience today’s homeowners are looking for. Bexford is also located within the Wake County School District, making it the perfect choice for families with school-aged children. The Townes at Bexford is a thoughtfully planned new construction community in Willow Spring, designed to support modern lifestyles. Community amenities will include a pool and bathhouse – plus, walking trails throughout the community connect to the Middle-Creek Greenway for leisurely afternoon strolls. Additional amenities will include a fitness park, playground and swingswet, dog park, community pavilion, and more! New townhomes in The Townes at Bexford feature 1,418-1,614 sq ft, three bedrooms, two and a half bathrooms, fiber cement siding, and 1-car front or alley-load garages. The open floorplan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. Modern finishes and smart home technology provide both comfort and style. Kitchens with quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. The Townes at Bexford is a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community. With its prime location, variety of floor plan offerings, and modern features, Bexford is more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come. Schedule a tour today!',        amenities: 'Future community pool & clubhouse Future fitness park Fiber Cement Siding Future playground and swingset Future dog park Future community pavilion Future cornhole, yoga lawn, pollinator park, and walking paths featuring benches throughout Wake County Schools Fiber Cement Siding Quartz Countertops Tile Backsplash Downtown Raleigh - 15 mi Costo - 5 mi Bentwinds Country Club - 5.3 mi Carroll Howard Johnson Environmental Park - 6.7 mi RDU International Airport - 24.5 mi UNC Healthcare 2.9 mi',        schools: 'Banks Road Elementary Public | PK-5 2.4 mi. West Lake Middle School Public | 6-8 5 mi. Willow Spring High School Public | 9-12 1.8 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/78648-bexford/bexford_-_site_map_overall-01.jpg?rev=4bbb012f498049cc9a8b2ca69517ac54&hash=C88CA5FAF6FAD13A0EFFF2388CAD708F',        address: '5004 Red Blush Way, Willow Spring, NC 27592'      },
+      'Bexford-Townes RL': {        about: 'Discover new homes in Willow Spring, NC at The Townes at Bexford, conveniently located near the newly completed Hwy 540 extension making commuting simple while keeping everyday essentials close to home. Situated near Hwy 401, Hwy 42, Downtown Fuquay-Varina, NC State University, Costco, and a short drive to Raleigh, The Townes at Bexford provides the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are just a short drive away, providing the convenience today’s homeowners are looking for. Bexford is also located within the Wake County School District, making it the perfect choice for families with school-aged children. The Townes at Bexford is a thoughtfully planned new construction community in Willow Spring, designed to support modern lifestyles. Community amenities will include a pool and bathhouse – plus, walking trails throughout the community connect to the Middle-Creek Greenway for leisurely afternoon strolls. Additional amenities will include a fitness park, playground and swingswet, dog park, community pavilion, and more! New townhomes in The Townes at Bexford feature 1,418-1,614 sq ft, three bedrooms, two and a half bathrooms, fiber cement siding, and 1-car front or alley-load garages. The open floorplan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. Modern finishes and smart home technology provide both comfort and style. Kitchens with quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. The Townes at Bexford is a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community. With its prime location, variety of floor plan offerings, and modern features, Bexford is more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come. Schedule a tour today!',        amenities: 'Future community pool & clubhouse Future fitness park Fiber Cement Siding Future playground and swingset Future dog park Future community pavilion Future cornhole, yoga lawn, pollinator park, and walking paths featuring benches throughout Wake County Schools Fiber Cement Siding Quartz Countertops Tile Backsplash Downtown Raleigh - 15 mi Costo - 5 mi Bentwinds Country Club - 5.3 mi Carroll Howard Johnson Environmental Park - 6.7 mi RDU International Airport - 24.5 mi UNC Healthcare 2.9 mi',        schools: 'Banks Road Elementary Public | PK-5 2.4 mi. West Lake Middle School Public | 6-8 5 mi. Willow Spring High School Public | 9-12 1.8 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/78648-bexford/bexford_-_site_map_overall-01.jpg?rev=4bbb012f498049cc9a8b2ca69517ac54&hash=C88CA5FAF6FAD13A0EFFF2388CAD708F',        address: '5004 Red Blush Way, Willow Spring, NC 27592'      },
+      'Carver Station': {        about: 'Discover Carver Station, our latest new home community coming soon to the booming city of Durham, NC. This community will offer a variety single family homes adorned with designer features, modern conveniences, and exceptional options for any lifestyle. Situated less than 5 miles from the vibrant shopping, dining, and entertainment of Downtown Durham and less than 20 miles from the RDU Airport. Spend the afternoon shopping at the Streets at Southpoint just a short drive away. Homeowners can also enjoy easy access to I-40, allowing for an easy commute to Research Triangle Park and Downtown Raleigh, as well as the top universities in Durham and Chapel Hill, such as Duke University and UNC Chapel Hill. Our exterior accents and designer-curated elevations have been carefully planned to create an attractive streetscape that you will be proud to call your own. At The Townes at Carver Station, we understand the value of modern living. This is why every townhome will feature smart home technology, giving you convenience and control right at your fingertips. Experience a unique blend of comfort and convenience that fits all lifestyles at Carver Station. Sign up for the First-To-Know list today to stay up-to-date with community happenings and releases, straight to your inbox before the general public!',        amenities: 'Convenient Location Downtown Durham – 4.6 mi Duke Regional Hospital – 1.8 mi Brier Creek - 18 mi Streets at Southpoint – 16.2 mi Eno River State Park – 8.9 mi Lakeview Park – 1.8 mi Red Maple Park – 2 mi Duke University - 5 mi NC Central University – 5.7 mi UNC Chapel Hill – 16.4 mi Research Triangle Park - 12 mi RDU International Airport – 16.1 mi Raleigh – 26.3 mi Quartz Countertops Stainless Steel Appliances Smart Home Technology',        schools: 'Sandy Ridge Elementary School Public | K-5 0.9 mi. Lucas Middle School Public | 6-8 4.3 mi. Northern High School Public | 9-12 3.7 mi.',        mapLink: '',        address: 'E Carver Street, Durham, NC 27704'      },
+      'Chapel Townes': {        about: 'Welcome to Chapel Townes, a new townhome community located in Raleigh, NC! This community offers two-story townhomes, ranging from 1,678-1,763 sq ft, 3 bedrooms, 2.5 bathrooms, and 1-car garages. Resident\'s can enjoy an afternoon outdoors at the future community gathering garden with swing, open space, and future walking trails. Ideally situated near the corner of Buffaloe Rd and Forestville Rd, Chapel Townes is located less than 1 mile from I-540. Also nearby is Hwy 401/Louisburg Rd just 3 miles away. With Downtown Raleigh, 7.4 miles away and the historic Downtown Wake Forest 9.4 miles away, residents will be a short drive from an abundance of shopping, dining, entertainment, recreation, and more! Recently opened, around the corner from Chapel Townes, is a brand-new Publix grocery store, Sheetz, McDonalds, and more. For the outdoor enthusiast, Robertson Millpond Preserve is just 5.9 miles away, Sandy Pines Preserve is 9.2 miles away, and the area’s newest local favorite, Fantasy Lake Adventure Park is also 7.1 miles away. Knightdale Station Park and Knightdale Community Park are both less than 5 miles away, great for an afternoon outdoors. Neuse River Greenway Trail, with its hiking, cycling, and scenic views, is a mere 1.5 miles away. Buffaloe Canoe Launch and Athletic Park is only 1.3 miles away. Crabtree Valley Mall is 9 miles away and The Shoppes at Midway Plantation in Knightdale is 4.7 miles away, for avid shoppers, and the Wendell Country Club is just 8.6 miles away for golf enthusiasts; along with Heritage Golf Club Wake Forest 7.7 miles away. For resident\'s piece of mind, WakeMed Raleigh is only 5.4 miles away. The exterior schemes and elevations of our homes were carefully designed to create a beautiful streetscape that you\'ll be proud to call home. At Chapel Townes, we understand the importance of modern living. That\'s why each home will be equipped with smart home technology, putting convenience and control at your fingertips.',        amenities: 'Future Walking Trails Future Gathering Garden w/ Swing Open Space Quartz Countertops Gas Range Home is Connected Smart Home System Downtown Knightdale - 4 mi Downtown Raleigh - 7.4 mi Downtown Wendell - 9.2 mi Downtown Wake Forest - 9.4 mi Downtown Garner - 10 mi WakeMed Raleigh - 5.4 mi Knightdale Station Park - 3.7 mi WRAL Soccer Complex - 3.5 mi Fantasy Lake Adventure Park - 7.1 mi Neuse River Greenway Trail - 1.5 mi Shoppes at Midway Plantation - 4.7 mi Wendell Country Club - 8.6 mi Heritage Golf Club Wake Forest - 7.7 mi Costco - 6.1 mi Crabtree Valley Mall - 9 mi',        schools: 'Forestville Road Elementary School Public | PK-5 2.8 mi. Neuse River Middle School Public | 6-8 1.2 mi. Knightdale High School Public | 9-12 2.9 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49788-chapel-townes/chapel_townes_-_site_map_overall.jpg?rev=e1acda90824b4c6f95535083d48bd8bf&hash=659123ACF0F3CAD8496C34FA348F75AB',        address: '5201 Chapel Townes Way, Raleigh, NC 27604'      },
+      'Collins Ridge 26\' TH': {        about: 'Discover new homes in Hillsborough, NC at Collins Ridge Townes, located within a half-mile from downtown Hillsborough. This established community is less than two miles from both I-85 and I-40, making your commute a breeze while keeping everyday essentials close by. Located close to UNC Chapel Hill, Duke University, Research Triangle Park, The Streets at Southpoint, and the well-known Eno River State Park, Collins Ridge provides the perfect balance of suburban comfort and city accessibility. Residents enjoy multiple resort-style amenities including a salt-water pool, a clubhouse featuring a fitness center, functioning kitchen and meeting room. Additional amenities include two tennis courts that double as pickleball courts, a dog park, walking trails, and playgrounds. Outdoor areas throughout the community provide space for walks, play, and everyday moments outside. Townhomes in Collins Ridge Townes’ newest phase were thoughtfully designed to fit a variety of lifestyles. Modern finishes and smart home technology provide both comfort and style. Kitchens with open-layouts, quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Collins Ridge Townes offers new townhomes in Hillsborough, designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'Exercise - Fitness Playground Club House Dog Park Pool Tennis Tot Lot Club House Fitness Center Playgrounds Dog Park Saltwater Pool Tennis Courts Pickle Ball Court Yoga Lawn Fiber Cement Siding Quartz Countertops Ceramic Tile Backsplash in Kitchen Stainless Steel Appliances Home is Connected® Smart Home System',        schools: 'Central Elementary Public | PK-5 1.4 mi. A.L. Stanback Middle Public | 6-8 2.9 mi. Cedar Ridge High Public | 9-12 1.7 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49727-collins-ridge/collins_ridge_-_site_map_-_overall.jpg?rev=d8079868930742f387fa91119039348e&hash=6E831E74B6083B1152AB0C05BEF2CEA1',        address: '325 Country Side Street, Hillsborough, NC 27278'      },
+      'Collins Ridge 40\'': {        about: 'Discover new homes in Hillsborough, NC at Collins Ridge, located within a half-mile from downtown Hillsborough. This established community is less than two miles from both I-85 and I-40, making your commute a breeze while keeping everyday essentials close by. Located close to UNC Chapel Hill, Duke University, Research Triangle Park, The Streets at Southpoint, and the well-known Eno River State Park, Collins Ridge provides the perfect balance of suburban comfort and city accessibility. Residents enjoy multiple resort-style amenities including a salt-water pool, a clubhouse featuring a fitness center, functioning kitchen and meeting room. Additional amenities include two tennis courts that double as pickleball courts, a dog park, walking trails, and playgrounds. Outdoor areas throughout the community provide space for walks, play, and everyday moments outside. Homes in Collins Ridge’s newest phase were thoughtfully designed to fit a variety of lifestyles. Floor plans range from three to five bedrooms, two to three and a half bathrooms, and filled with all types of options including flex rooms, lofts, open living spaces, and main-level living. Modern finishes and smart home technology provide both comfort and style. Kitchens with open-layouts, quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Collins Ridge offers new homes in Hillsborough, designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'Club House Fitness Center Playgrounds Dog Park Saltwater Pool Tennis Courts Pickle Ball Court Yoga Lawn Fiber Cement Siding Quartz Countertops Ceramic Tile Backsplash in Kitchen Stainless Steel Appliances Home is Connected® Smart Home System',        schools: 'Central Elementary Public | PK-5 1.7 mi. A.L. Stanback Middle Public | 6-8 2.6 mi. Cedar Ridge High Public | 9-12 1.9 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49730-collins-ridge/collins_ridge_-_site_map_-_overall.jpg?rev=703b77ba545e40d4ae54bd2d9b3531c0&hash=187F87AB618AC2E1E1EF4EBE9B9186E4',        address: '325 Country Side Street, Hillsborough, NC 27278'      },
+      'Collins Ridge 50\'': {        about: 'Discover new homes in Hillsborough, NC at Collins Ridge, located within a half-mile from downtown Hillsborough. This established community is less than two miles from both I-85 and I-40, making your commute a breeze while keeping everyday essentials close by. Located close to UNC Chapel Hill, Duke University, Research Triangle Park, The Streets at Southpoint, and the well-known Eno River State Park, Collins Ridge provides the perfect balance of suburban comfort and city accessibility. Residents enjoy multiple resort-style amenities including a salt-water pool, a clubhouse featuring a fitness center, functioning kitchen and meeting room. Additional amenities include two tennis courts that double as pickleball courts, a dog park, walking trails, and playgrounds. Outdoor areas throughout the community provide space for walks, play, and everyday moments outside. Homes in Collins Ridge’s newest phase were thoughtfully designed to fit a variety of lifestyles. Floor plans range from three to five bedrooms, two to three and a half bathrooms, and filled with all types of options including flex rooms, lofts, open living spaces, and main-level living. Modern finishes and smart home technology provide both comfort and style. Kitchens with open-layouts, quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Collins Ridge offers new homes in Hillsborough, designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'Club House Fitness Center Playgrounds Dog Park Saltwater Pool Tennis Courts Pickle Ball Court Yoga Lawn Fiber Cement Siding Quartz Countertops Ceramic Tile Backsplash in Kitchen Stainless Steel Appliances Home is Connected® Smart Home System',        schools: 'Central Elementary Public | PK-5 1.7 mi. A.L. Stanback Middle Public | 6-8 2.6 mi. Cedar Ridge High Public | 9-12 1.9 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49730-collins-ridge/collins_ridge_-_site_map_-_overall.jpg?rev=703b77ba545e40d4ae54bd2d9b3531c0&hash=187F87AB618AC2E1E1EF4EBE9B9186E4',        address: '325 Country Side Street, Hillsborough, NC 27278'      },
+      'Collinswood - Freedom': {        about: 'Welcome to The Villas at Collinswood, located in the charming town of Aberdeen, NC. The Villas offer 1-1.5-story homes that range from 1,672-2,529 sq ft, and feature 2-4 bedrooms, 2-3 bathrooms, and 2-car garages. Our versatile floorplans allow for comfortable main-level living, while the half story addition (floorplan specific) adds an extra level of privacy with a completed bedroom and full bathroom, and a bonus room perfect for a game room, media room, library, or study! Community amenities include walking trails, picnic areas, sidewalks and street lights, and a pollinator park! As you step inside one of The Villas at Collinswood homes, prepare to be captivated by the attention to detail and high-quality finishes throughout. The kitchen, a chef\'s dream, boasts beautiful shaker-style cabinets, quartz countertops, a ceramic tile backsplash, stainless steel appliances, and kitchen islands. The versatile floorplan designs are ideal for many lifestyles, with space to entertain and celebrate with friends and family, or create your own quiet escape. The LED lighting also adds a modern touch and creates a warm, inviting ambiance. The exterior schemes and elevations of our homes were carefully designed to create a beautiful streetscape that you\'ll be proud to call home. We understand the importance of modern living, that\'s why each home is equipped with smart home technology, putting convenience and control at your fingertips. Experience the ultimate convenience of living at Collinswood. Residents have access to nearby esteemed educational facilities: Aberdeen Elementary School is 4.7 miles away. Southern Middle School is conveniently 4.3 miles away, and Pinecrest High School is just 6.5 miles away. Giving an abundance of shopping, dining, and entertainment options, Pinehurst is only 8.5 miles away. Avid golfers will delight in the proximity to the renowned Pinehurst Golf Resort, host to the prestigious 2024 U.S Open, only 8.3 miles away. Plus, Legacy Golf Links golf course is 4.3 miles away. Nature lovers can spend their days enjoying the scenic views and trails of Aberdeen Lake Park, just 2.5 miles away, or Weymouth Woods Nature Preserve 3.8 miles away. Grocery runs have never been easier with Harris Teeter located only 4 miles away, Target 5.2 miles away, and BJ\'s 5.3 miles away. And for residents’ peace of mind, access healthcare services at FirstHealth Moore Regional Hospital conveniently 9 miles away.',        amenities: 'Walking Trails Sidewalks & Street Lights Pollinator Park Picnic Areas 2.5 mi - Aberdeen Lake Park 3.8 mi - Weymouth Woods Nature Preserve 5 mi - Southern Pines Golf Club 5.2 mi - Target 5.2 mi - Morganton Sports Complex 5.3 mi - BJ\'s 5.7 mi - Pool Park 6 mi - Southern Pines 8.5 mi - Pinehurst Resort/Golf Course 28 mi - Saleeby Family YMCA 9 mi - FirstHealth Moore Regional Hospital 30 mi - Fort Bragg 32 mi - Sanford 35 mi - Fayetteville Ceramic Tile Backsplash in Kitchen Quartz Countertops Stainless steel appliances Home is Connected® Smart Home System',        schools: 'Aberdeen Elementary School Public | K-5 4.5 mi. Southern Middle School Public | 6-8 4.2 mi. Pinecrest High School Public | 9-12 7.0 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/49860-collinswood/collinswood_-_site_map__overall.jpg?rev=181cb149c8e340b1bb9c37e94255f831&hash=6EE57360AE8A0BEAFCAB02CF9042C38C',        address: '429 Thistle Meadow Ln, Aberdeen, NC 28315'      },
+      'Collinswood - Traditions': {        about: 'Welcome to Collinswood, located in the charming town of Aberdeen, NC. This brand-new community showcases a selection of our most popular floorplans ranging from 2,340-3,108 sq ft, and featuring 3-5 bedrooms, 2.5-3.5 bathrooms, and 2-car garages. Community amenities include walking trails, picnic areas, sidewalks and street lights, and a pollinator park! Residents have access to nearby esteemed educational facilities: Aberdeen Elementary School is 3.8 miles away. Southern Middle School is conveniently 2.7 miles away, and Pinecrest High School is just 4.7 miles away. Giving an abundance of shopping, dining, and entertainment options, Pinehurst is only 8.5 miles away. Avid golfers will delight in the proximity to the renowned Pinehurst Golf Resort, host to the prestigious 2024 U.S Open, only 8.3 miles away. Plus, Legacy Golf Links golf course is 4.3 miles away. Nature lovers can spend their days enjoying the scenic views and trails of Aberdeen Lake Park, just 2.5 miles away, or Weymouth Woods Nature Preserve 3.8 miles away. Grocery runs have never been easier with Harris Teeter located only 4 miles away, Target 5.2 miles away, and BJ\'s 5.3 miles away. And for residents’ peace of mind, access healthcare services at FirstHealth Moore Regional Hospital conveniently 9 miles away. As you step inside one of Collinswood homes, prepare to be captivated by the attention to detail and high-quality finishes throughout. The kitchen, a chef\'s dream, boasts beautiful shaker-style cabinets, quartz countertops, a ceramic tile backsplash, stainless steel appliances, and kitchen islands. The versatile floorplan designs are ideal for many lifestyles, with space to entertain and celebrate with friends and family, or create your own quiet escape. The LED lighting also adds a modern touch and creates a warm, inviting ambiance. The exterior schemes and elevations of our homes were carefully designed to create a beautiful streetscape that you\'ll be proud to call home. At Collinswood, we understand the importance of modern living. That\'s why each home is equipped with smart home technology, putting convenience and control at your fingertips. Whether adjusting the temperature or turning on the lights, managing your home has never been easier. With its prime location, variety of floorplan offerings, and modern features, Collinswood is truly a gem. Contact us today to schedule an appointment!',        amenities: 'Walking Trails Sidewalks & Street Lights Pollinator Park Picnic Areas 2.5 mi - Aberdeen Lake Park 3.8 mi - Weymouth Woods Nature Preserve 5 mi - Southern Pines Golf Club 5.2 mi - Target 5.2 mi - Morganton Sports Complex 5.3 mi - BJ\'s 5.7 mi - Pool Park 6 mi - Southern Pines 8.5 mi - Pinehurst Resort/Golf Course 28 mi - Saleeby Family YMCA 9 mi - FirstHealth Moore Regional Hospital 30 mi - Fort Bragg 32 mi - Sanford 35 mi - Fayetteville Ceramic Tile Backsplash in Kitchen Quartz Countertops Stainless steel appliances Home is Connected® Smart Home System',        schools: 'Aberdeen Elementary School Public | K-5 3.8 mi. Southern Pines Elementary School Public | K-5 3.9 mi. Southern Middle School Public | 6-8 2.7 mi. Pinecrest High School Public | 9-12 4.7 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/49839-collinswood/collinswood_-_site_map__overall.jpg?rev=abacedc4beb945deb724b7029f12e824&hash=7EBF06A4D3BBBA3E95D88D109CF2B5CD',        address: '429 Thistle Meadow Ln, Aberdeen, NC 28315'      },
+      'Copper Run South': {        about: 'Discover new townhomes in Durham, NC at Copper Run South, conveniently situated off Angier Ave, right next to Hwy 70 E. This community offers easy access to major highways and Downtown Durham, 7 miles away, making commuting simple while keeping everyday essentials close to home. Located close to UNC Chapel Hill, Duke University, North Carolina Central University, Brier Creek, RTP, William B. Umstead State Park, and the well-known Eno River State Park, Copper Run South provides the perfect balance of suburban comfort and city accessibility. Copper Run South is a thoughtfully planned new construction community in Durham, designed to support modern lifestyles. Community amenities include a playground, dog park, swing park, cornhole area, and a multi-use playfield. Outdoor areas throughout the community provide space for walks, play, and everyday moments outside. Townhomes in Copper Run South were thoughtfully designed to fit a variety of lifestyles. Modern finishes and smart home technology provide both comfort and style. Plans offer three bedrooms and two and a half bathrooms, start from 1,678 sq. ft., and 1-car garages. Kitchens with quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With flexible floor plans and a convenient location, Copper Run South offers new townhomes in Durham designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'Playground Dog Park Swing Park Cornhole Area Multi-Use Playfield Quartz countertops Stainless Steel Appliances Research Triangle Park - 4.6 mi Downtown Durham - 7 mi Brier Creek - 9 mi Lake Lynn Community Center - 10 mi Duke University - 15.5 mi NC Central University - 6.2 mi William B. Umstead State Park - 6 mi RDU International Airport - 6 mi Duke Regional Hospital - 9.3 mi',        schools: 'Bethesda Elementary Public | K-5 3.5 mi. Neal Middle Public | 6-8 3.8 mi. Southern High School Public | 9-12 4 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49798-copper-run-south/copper_run_south-site_map.jpg?rev=ef9147e8f4f445cea1460f456ba58959&hash=77C87A326AB78DC0C62BF2CF59F222C2',        address: '1808 Hinesley Dr, Durham, NC 27703'      },
+      'Cross Creek': {        about: 'Future amenities will allow you to spend the afternoons relaxing outdoors at the community bench swing pocket park, take in nature at the pollinator park, stroll around the walking path, or enjoy the cool shade under the pavilion. Upon entering one of our residences, expect to be mesmerized by the meticulous attention to detail and top-notch finishes. The kitchens showcase exquisite shaker-style cabinets, quartz countertops, a ceramic tile backsplash, stainless steel appliances, and spacious kitchen island (floorplan specific). The open floorplan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. The exterior schemes and elevations of our homes were carefully designed to create a beautiful streetscape that you\'ll be proud to call home. At Cross Creek, we understand the importance of modern living. That\'s why each home is equipped with smart home technology, putting convenience and control at your fingertips. Whether adjusting the temperature or turning on the lights, managing your home has never been easier. Look no further for the perfect location, as Cross Creek is ideally located less than 1/2 mile from NC Hwy-210. The booming city of Fayetteville is only 15.4 miles away, offering an abundance of shopping, dining, recreation, entertainment, and more! Fayetteville is also home to the U.S. Army military base, Fort Bragg, 11.4 miles away. Cross Creek is near the notable college, Fayetteville State University, 13.8 miles away. Golfers can tee up at Carolina Lakes Golf Club, 14.4 miles away, or Baywood Golf Club, 23.7 miles away. Outdoor enthusiasts can visit Carvers Creek State Park 5.2 miles away, Carvers Creek State Park, Sandhills Access, 12.9 miles away, or Anderson Creek County Park, 9.7 miles away. The Fayetteville Regional Airport is 20.9 miles away, and Raleigh-Durham International Airport is 54 miles away, ensuring connectivity to domestic and international destinations.',        amenities: 'Future Bench Swing Pocket Park Future Pollinator Park Future Play Lawn Future Pavillion Park Pet Waste Stations Smart Home Technology NC Hwy-210 - .3 mi Fort Bragg - 11.4 mi Fayetteville State University - 13.8 mi Fayetteville - 15.4 mi Fayetteville Regional Airport - 20.9 mi Quartz Countertops Ceramic Tile Backsplash in Kitchen Stainless Steel Appliances',        schools: 'Anderson Creek Primary School Public | PreK-2 2.5 mi. South Harnett Elementary School Public | 3-5 4 mi. Overhills Middle School Public | 6-8 2.3 mi. Overhills High School Public | 9-12 2.4 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49848-cross-creek/cross_creek_-_site_map.jpg?rev=555d3f61056d4d49ae588c65847d08bb&hash=767137057C917B68FD9FB56B80B6790D',        address: '34 Discovery Way, Spring Lake, NC 28390'      },
+      'Eagle Creek': {        about: 'Discover new homes in Fuquay-Varina, NC at Eagle Creek, conveniently located near US-401, and offering easy access to Downtown Fuquay-Varina, making commuting simple while keeping everyday essentials close to home. Close to Downtown Fuquay-Varina, Holly Springs, Angier, Reedy Creek Golf Course, Raven Rock State Park, and Holly Springs Towne Center, Eagle Creek provides the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are just a short drive away, providing the convenience today’s homeowners are looking for. Residents enjoy welcoming surroundings, open green spaces, and opportunities to connect with neighbors. Eagle Creek provides space for walks, play, and everyday moments outside. New homes in Eagle Creek ranch from 2,000-3,300+ sq. ft. and feature four to five bedrooms, three to four bathrooms, and 2- to 3-car garages. The open floor plan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. Kitchens with quartz countertops, crown molding, open layouts, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, Eagle Creek offers new homes in Fuquay-Varina designed for the way people live today - a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community. Don\'t miss out on the opportunity to make it your own. Schedule a tour today!',        amenities: 'Downtown Fuquay-Varina - 3.7 mi Holly Springs - 8.9 mi Eagle Ridge Golf Club - 14.1 mi Raleigh - 19.8 mi Raven Rock State Park - 21.1 mi RDU International Airport - 29.4 mi Quartz Countertops Ceramic Tile Backsplash in Kitchen Crown Molding on 1st Floor 42" Shaker-style Cabinets Ceramic Tile Flooring in Laundry & Bathrooms',        schools: 'Northwest Harnett Elementary Public | K-5 3.7 mi. Harnett Central Middle Public | 6-8 5.2 mi. Harnett Central High Public | 9-12 5.2 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/49859-eagle-creek/eagle_creek_-_site_map.png?rev=5afc4930ab01489c97fa6a437acb5a7c&hash=B3059DDEFBD82EA6DADD702F1B70092F',        address: '60 Gilmer Street, Fuquay-Varina, NC 27526'      },
+      'Galvin\'s Ridge - DRHe': {        about: 'Discover new homes in Sanford, NC at Galvins Ridge, conveniently located just off US 1. This community offers easy access to Sanford, 6 miles away, and other major roadways, making commuting simple while keeping everyday essentials close to home. Grocery stores, restaurants, shopping, and entertainment are just minutes away, providing the convenience today’s homeowners are looking for. Located close to Hwy 540, Pinehurst Golf Resort, Tobacco Road Golf Course, RDU International Airport, Fort Bragg, and Riverbirch Corner Shopping Center, Galvins Ridge provides the perfect balance of suburban comfort and city accessibility. Galvins Ridge is a thoughtfully planned new construction community in Sanford, designed to support modern lifestyles. Community amenities will include a pool and clubhouse, fishing pond, nature trails, an outdoor court, playground, gathering garden, and putting park. Outdoor areas throughout the community provide space for walks, play, and everyday moments outside. New homes in Galvins Ridge were thoughtfully designed to fit a variety of lifestyles. Modern finishes and smart home technology provide both comfort and style. Plans range from 1,613-3,108 sq. ft., feature four to five bedrooms, up to three and a half bathrooms, and include options like flex rooms, lofts, and open living spaces. Kitchens with quartz countertops, functional islands, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With flexible floor plans and a convenient location, Galvins Ridge offers new homes in Sanford designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: 'Future Pool & Clubhouse Future Playground Walking - Nature Trails Grocery Store – 3.5 miles Quartz Countertops Ceramic tile backsplash in kitchen Stainless steel appliances Home is Connected® Smart Home System HWY 540 - 12 miles Downtown Sanford – 6 miles Tobacco Road Golf Course – 14 miles Fonda Lupita – 8 miles White Pines Nature Preserve – 9 miles Raleigh-Durham International Airport – 37 miles Central Carolina Hospital – 8 miles Research Triangle Park (RTP) - 39 miles Fort Bragg - 37 miles Triangle Innovation Point – 9 miles Jordan Lake - 15 miles Rex Holly Springs Hospital – 26 miles Riverbirch Corner Shopping Center - 7 miles',        schools: 'Deep River Elementary Public | K-5 1.8 mi. East Lee Middle School Public | 6-8 7.7 mi. Lee County High School Public | 9-12 6.9 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49763-galvins-ridge/galvins_ridge_site_map_overall_vertical.jpg?rev=9b240aa0ca2a499495394329f70e4f8c&hash=313BBD4C141A72E1C252F3018F5B8E76',        address: '304 Red Brick St, Sanford, NC 27330'      },
+      'Galvin\'s Ridge - THs': {        about: '\\Discover new homes in Sanford, NC at Galvins Ridge, conveniently located just off US 1. This community offers easy access to Sanford, 6 miles away, and other major roadways, making commuting simple while keeping everyday essentials close to home. Grocery stores, restaurants, shopping, and entertainment are just minutes away, providing the convenience today’s homeowners are looking for. Located close to Hwy 540, Pinehurst Golf Resort, Tobacco Road Golf Course, RDU International Airport, Fort Bragg, and Riverbirch Corner Shopping Center, Galvins Ridge provides the perfect balance of suburban comfort and city accessibility. Galvins Ridge is a thoughtfully planned new construction community in Sanford, designed to support modern lifestyles. Community amenities will include a pool and clubhouse, fishing pond, nature trails, an outdoor court, playground, gathering garden, and putting park. Outdoor areas throughout the community provide space for walks, play, and everyday moments outside. New homes in Galvins Ridge were thoughtfully designed to fit a variety of lifestyles. Modern finishes and smart home technology provide both comfort and style. Plans range from 1,613-3,108 sq. ft., feature four to five bedrooms, up to three and a half bathrooms, and include options like flex rooms, lofts, and open living spaces. Kitchens with quartz countertops, functional islands, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. With flexible floor plans and a convenient location, Galvins Ridge offers new homes in Sanford designed for the way people live today. It’s a place where homeowners can settle in, create memories, and enjoy the comfort of a thoughtfully designed community.',        amenities: '"Future Pool & Clubhouse Future Playground Walking - Nature Trails Grocery Store – 3.5 miles Quartz Countertops Ceramic tile backsplash in kitchen Stainless steel appliances Home is Connected® Smart Home System HWY 540 - 12 miles Downtown Sanford – 6 miles Tobacco Road Golf Course – 14 miles Fonda Lupita – 8 miles White Pines Nature Preserve – 9 miles Raleigh-Durham International Airport – 37 miles Central Carolina Hospital – 8 miles Research Triangle Park (RTP) - 39 miles Fort Bragg - 37 miles Triangle Innovation Point – 9 miles Jordan Lake - 15 miles Rex Holly Springs Hospital – 26 miles Riverbirch Corner Shopping Center - 7 miles"',        schools: 'Deep River Elementary Public | K-5 1.8 mi. East Lee Middle School Public | 6-8 7.7 mi. Lee County High School Public | 9-12 6.9 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49763-galvins-ridge/galvins_ridge_site_map_overall_vertical.jpg?rev=9b240aa0ca2a499495394329f70e4f8c&hash=313BBD4C141A72E1C252F3018F5B8E76',        address: '304 Red Brick St, Sanford, NC 27330'      },
+      'Gretchen Pines': {        about: 'Welcome to Gretchen Pines, a gated community offering spacious homesites in the charming town of West End, NC. Choose from thoughtfully designed floor plans, including single and two-story homes.. Our homes feature chef-inspired kitchens with shaker-style cabinets, quartz countertops, tile backsplashes, stainless steel appliances, and spacious islands. Open floor plans, modern LED lighting, and smart home technology provide comfort, style, and convenience. Enjoy the privacy of large lots and the tranquility of scenic walking trails within this beautifully planned community. Conveniently located within commuting distance of Fort Bragg, Gretchen Pines offers homeowners the opportunity to enjoy larger homesites, modern floor plans, and a quieter, more private setting—while still maintaining easy access to shopping, dining, and everyday conveniences. Additional nearby amenities include Harris Teeter (7.8 miles), FirstHealth Moore Regional Hospital (10 miles), and Seven Lakes Health & Fitness Center (3.6 miles). Experience the perfect combination of modern living, spacious homesites, and a welcoming community at Gretchen Pines.',        amenities: 'Spacious Homesites Walking Trails Gated Community FirstHealth Moore Regional Hospital - 10 Miles Harris Teeter - 7.8 Miles The Village of Pinehurst - 5.2 miles Southern Pines - 16 miles Seven Lakes Country Club - 2.7 miles Seven Lakes Health & Fitness Center - 3.6 miles Fort Bragg - 33 miles Quartz Countertops Stainless Steel Appliances Home is Connected Smart Home System',        schools: 'West Pine Elementary School Public | K-5 2.4 mi. West Pine Middle School Public | 6-8 2.5 mi. Pinecrest High School Public | 9-12 8.2 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/49853-gretchen-pines/gretchen_pines_-_site_map.jpg?rev=55582e9c2edc4b83a65356576273a9ab&hash=9ECC7526707E8DF1F4B24FC3CCAB3403',        address: '3000 Platinum Circle, West End, NC 27376'      },
+      'Hawley Glen': {        about: 'Hawley Glen is nestled less than 1 mile from US-401 off Old Coats Rd and will offer a unique blend of comfort, convenience, and relaxing charm. With only 38 exclusive homesites, featuring an array of single-family homes, this thoughtfully planned community is shaped by natural beauty and intentional design. Ideally located near local dining, shopping and major roadways, Hawley Glen offers the perfect balance of peaceful living and modern comfort. Whether you’re looking for your first home or a home to start your next chapter, Hawley Glen provides a place to grow, gather, and somewhere you’ll be happy to call home. Nature lovers will be pleased that Raven Rock State Park is 11.7 miles away. Plus, Anderson Creek County Park is 13.3 miles away, perfect for scenic trails, and outdoor activities. Golfers can tee up at Keith Hills Golf Club, just 4.8 miles away. Travel connections are a breeze, with Raleigh-Durham International Airport located 39.9 miles away. And providing peace of mind for residents, Central Harnett Hospital is conveniently located only 1.7 miles away.',        amenities: 'Spacious Homesites Convenient Location HWY-401 – 1 mi Central Harnett Hospital - 1.7 mi Downtown Lillington – 2.5 mi Cape Fear Shiner County Park – 2 mi Cape Fear River Adventures – 2 mi Central Carolina Community College – 2 mi Campell University – 4.4 mi Keith Hills Golf Club – 4.8 mi Angier – 7.5 mi Raven Rock State Park – 11.7 mi Anderson Creek County Park – 13.3 mi Fuquay-Varina – 13.1 mi Raleigh – 28.9 mi RDU Airport – 39.9 mi Quartz Countertops Ceramic Tile Backsplash in Kitchens Stainless Steel Appliances Smart Home Technology',        schools: 'Lillington-Shawtown Elementary School Public | K-5 3.3 mi. Harnett Central Middle Public | 6-8 2.6 mi. Harnett Central High Public | 9-12 2.8 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/49789-hawley-glen/hawley_glen_-_site_map_-_overall.jpg?rev=8c3f04c6e09c446cb0188eb356eedf55&hash=2730AE317CB8577D6FC3E0CB0D203291',        address: 'Old Coats Rd, Lillington, NC 27546'      },
+      'Haywood Glen PH4 35s': {        about: 'Discover new homes in Knightdale, NC, at The Villas at Haywood Glen, conveniently located off Old Knight Rd, and close to Downtown Knightdale, this community offers easy access to major highways and roadways, making commuting simple while keeping everyday essentials close to home. Situated less than two miles from Downtown Knightdale, 13.6 miles from Raleigh, and around the corner from I-540 and I-440, The Villas at Haywood Glen offers the perfect balance of suburban comfort and city accessibility. Wendell and Clayton are also both within 15 miles. The Shoppes at Midway Plantation is a short drive away when you’re in the mood to explore more dining, shopping, or entertainment options, along with Wendell Falls. The Villas at Haywood Glen is a thoughtfully planned new construction community designed for family enjoyment and a variety of lifestyles. Community amenities include a pool and bathhouse, multiple playgrounds, an exercise lawn, a dog park, walking path, open spaces, and sidewalks throughout. New homes in The Villas at Haywood Glen range from 1,599 sq. ft., feature three to four bedrooms, two to two and a half bathrooms, and 2-car alley-load garages. Our homes offer a seamless flow between the living, dining, and kitchen areas — perfect for entertaining and family gatherings. Open-concept layouts connect the kitchen, dining, and living areas, while LED lighting and smart home technology add convenience and efficiency throughout the home. Kitchens with quartz countertops, ceramic tile backsplashes, ample cabinet space, and stainless-steel appliances create clean and functional space for cooking, gathering, or entertaining friends. With stylish homes, flexible floor plans, and a convenient location, The Villas at Haywood Glen offers new homes in Knightdale designed for the way people live today. It’s more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come. Schedule a tour today.',        amenities: 'Pool & Bathhouse Multiple Playgrounds Dog Park Exercise Lawn Walking Path Open Spaces Quartz Countertops Stainless Steel Appliances Home is Connected® Smart Home System Knightdale Community Park - 1.3 mi Knightdale Station Park - 1.9 mi Wendell Country Club - 7.6 mi Wendell - 7.8 mi WakeMed North Hospital - 11.9 mi Raleigh - 13.6 mi Clayton - 14 mi Wake Forest - 17.3 mi RDU Airport - 25.4 m',        schools: 'Forestville Road Elementary School Public | PK-5 1.1 mi. Neuse River Middle School Public | 6-8 2.1 mi. Knightdale High School Public | 9-12 1 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/78630-haywood-glen/haywood_glen_-_site_map_-_ph4.jpg?rev=99e6b49dfa8c4aa382993b642e16a718&hash=E3DC7D8BC007A5BA53B68ED4A64B4143',        address: '1324 Jasmine View Way, Knightdale, NC 27545'      },
+      'Haywood Glen PH4 60s': {        about: 'Discover new homes in Knightdale, NC, at The Manors at Haywood Glen, conveniently located off Old Knight Rd, and close to Downtown Knightdale, this community offers easy access to major highways and roadways, making commuting simple while keeping everyday essentials close to home. Situated less than two miles from Downtown Knightdale, 13.6 miles from Raleigh, and around the corner from I-540 and I-440, The Manors at Haywood Glen offers the perfect balance of suburban comfort and city accessibility. Wendell and Clayton are also both within 15 miles. The Shoppes at Midway Plantation is a short drive away when you’re in the mood to explore more dining, shopping, or entertainment options, along with Wendell Falls and Knightdale Station. The Manors at Haywood Glen is a thoughtfully planned new construction community designed for family enjoyment and a variety of lifestyles. Community amenities include a pool and bathhouse, multiple playgrounds, an exercise lawn, a dog park, walking path, open spaces, and sidewalks throughout. New homes in The Manors at Haywood Glen range from 1,878-3,419 sq. ft., feature three to five bedrooms, two to four bathrooms, and 2-car garages. Open-concept layouts connect the kitchen, dining, and living areas, while LED lighting and smart home technology add convenience and efficiency throughout the home. Kitchens with quartz countertops, ceramic tile backsplashes, ample cabinet space, and stainless-steel appliances create clean and functional space for cooking, gathering, or entertaining friends. Lofts, optional bedrooms, and flex rooms provide even more room to grow and spread out. With stylish homes, flexible floor plans, and a convenient location, The Manors at Haywood Glen offers new homes in Knightdale designed for the way people live today. It’s more than just a place to live—it’s a place to settle in, make memories, and create traditions that last for years to come. Schedule a tour today.',        amenities: 'Pool & Bathhouse Multiple Playgrounds Dog Park Exercise Lawn Walking Path Open Spaces Quartz Countertops Stainless Steel Appliances Home is Connected® Smart Home System Knightdale Community Park - 1.3 mi Knightdale Station Park - 1.9 mi Wendell Country Club - 7.6 mi Wendell - 7.8 mi WakeMed North Hospital - 11.9 mi Raleigh - 13.6 mi Clayton - 14 mi Wake Forest - 17.3 mi RDU Airport - 25.4 m',        schools: 'Forestville Road Elementary School Public | PK-5 1.1 mi. Neuse River Middle School Public | 6-8 2.1 mi. Knightdale High School Public | 9-12 1 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh/78630-haywood-glen/haywood_glen_-_site_map_-_ph4.jpg?rev=99e6b49dfa8c4aa382993b642e16a718&hash=E3DC7D8BC007A5BA53B68ED4A64B4143',        address: '1324 Jasmine View Way, Knightdale, NC 27545'      },
+      'Honeycutt Oaks': {        about: 'Welcome to Honeycutt Oaks, a new home community now selling in the quaint city of Angier, NC. This community offers new single family floorplans, ranging from 1,497-3,108 sq. ft., 3-4 bedrooms, up to 2-3.5 bathrooms, and 2-car garages. Upon entering one of our homes, expect to be awed by the meticulous attention to detail and top-notch finishes. The kitchen, a chef\'s dream, showcases exquisite shaker-style cabinets with crown molding, quartz countertops, beautiful ceramic tile backsplash, stainless steel appliances, and satin nickel hardware. The open floorplan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. The exterior schemes and elevations of our homes were carefully designed to create a beautiful streetscape that you\'ll be proud to call home. At Honeycutt Oaks, we understand the importance of modern living. That\'s why each home is equipped with smart home technology, putting convenience and control at your fingertips. Whether adjusting the temperature or turning on the lights, managing your home has never been easier. Located in Angier, just south of Wake County and right off Hwy 210, residents will be able to enjoy easy access to an abundance of shopping, dining, entertainment, and recreation options. Plus, homeowners can enjoy the new community pool now open! Access to major highways and roadways is a breeze with US-401 5.5 miles away, NC-42 7.7 miles away, I-40 12.5 miles away, and I-95 just 21 miles away. Golf enthusiasts can tee off at the Bentwinds Country Club just 10 miles away, or Reedy Creek Golf Course 16 miles away. Nature lovers can explore the wonders of Raven Rock State Park 18 miles away or bask in the beauty of Juniper Level Botanic Garden 13.4 miles away. The Raleigh-Durham International Airport is just 33 miles away, connecting you to all your travel destinations. Fort Bragg, one of the world’s largest military installations, is 36.2 miles away. And providing peace of mind for residents, the esteemed Central Harnett Hospital is only 7.5 miles away.',        amenities: 'Community Pool & Bathhouse Downtown Fuquay-Varina - 6 mi Carolina Charter Academy - 2.2 mi Fuquay Crossing - 8 mi Downtown Raleigh - 20 mi RDU International Airport - 26 mi Central Harnett Hospital - 6.2 mi Harris Teeter - 6.5 mi Jack Marley Park - 1 mi Campbell University - 8.3 mi Fort Bragg - 36.2 mi Quartz Countertops Stainless Steel Appliances Home is Connected® Smart Home System',        schools: 'Angier Elementary School Public | 3-5 0.9 mi. Harnett Central Middle Public | 6-8 3.3 mi. Harnett Central High Public | 9-12 3.1 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/49748-honeycutt-oaks/honeycutt_oaks_-_site_map_overall_overall.jpg?rev=ed913ecbd47f4d7aa4e4f196d0908fd3&hash=34D3BBBDD3B9573FD7304E305FD73C89',        address: '41 Honeycutt Oaks Dr, Angier, NC 27501'      },
+      'Honeycutt Oaks THs': {        about: 'Discover new homes in Angier, NC at The Townes at Honeycutt Oaks, conveniently located just south of Wake County, making commuting simple while keeping everyday essentials close to home. Situated off NC-210 and near US-401, NC-42, I-40, I-95, Downtown Angier, Fuquay-Varina, Fuquay Crossing, and a short drive to Raleigh, The Townes at Honeycutt Oaks provides the perfect balance of suburban comfort and city accessibility. Grocery stores, restaurants, shopping, and entertainment are just a short drive away, providing the convenience today’s homeowners are looking for. The Townes at Honeycutt Oaks is a thoughtfully planned new construction community designed to support modern lifestyles. Community amenities include a pool and bathhouse, perfect for cooling off on hot summer days. New townhomes in The Townes at Honeycutt Oaks range from 1,381-1,554 sq ft, three to four bedrooms, two and a half bathrooms, and 1-car garages. The open floorplan designs are perfect for entertaining, while the LED lighting adds a modern touch and creates a warm, inviting ambiance. Modern finishes and smart home technology provide both comfort and style. Kitchens with quartz countertops, ceramic tile backsplashes, and stainless-steel appliances create a clean and functional space for cooking, gathering, or entertaining friends. At The Townes at Honeycutt Oaks life feels balanced, comfortable, and connected—making it easy to settle in and feel right at home. It’s about more than just a house, it’s about creating a place where memories are made, traditions begin, and families can truly feel at home. Schedule a tour today!',        amenities: 'Community Pool & Bathhouse Downtown Fuquay-Varina - 6 mi Carolina Charter Academy - 2.2 mi Fuquay Crossing - 8 mi Downtown Raleigh - 20 mi RDU International Airport - 26 mi Central Harnett Hospital - 6.2 mi Harris Teeter - 6.5 mi Jack Marley Park - 1 mi Campbell University - 8.3 mi Fort Bragg - 36.2 mi Quartz Countertops Stainless Steel Appliances Home is Connected® Smart Home System',        schools: 'Angier Elementary School Public | 3-5 0.9 mi. Harnett Central Middle Public | 6-8 3.3 mi. Harnett Central High Public | 9-12 3.1 mi.',        mapLink: 'https://www.drhorton.com/-/media/drhorton/productcatalog/495-raleigh-south/49749-honeycutt-oaks/the_townes_at_honeycutt_oaks_-_site_map.jpg?rev=3bddf50422e9434888dfba592ae9cf36&hash=574B65A43D6A28AB93CCB6903DA9AFE2',        address: '41 Honeycutt Oaks Dr, Angier, NC 27501'      },
+      'Horton Park 52s': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Horton Park 62s': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Kalas Falls - DRH': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Laurel Oaks': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Laurel Oaks - Freedom': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Laurel Oaks - THs': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Lawson Glen': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Madden West - SF': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Madden West THs': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Mangum Farms': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Manors at Winston Pointe': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Martin Farms': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Martin Farms Manors': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Martin Farms Townes': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Martin Farms Villas': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Mason Ridge': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Matthews Landing - 40\' SFD': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Matthews Landing - 50\' SFD': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Matthews Landing - THs': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Matthews Landing - THs RL': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'North Gate': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Olive Branch': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Shahbain Reserve': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'South Pinehurst Cottages': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Swift Creek Farm': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'The Grove at Winston Pointe': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'The Landing at Winston Pointe': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'The Manors at Swift Creek Farm': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'The Reserve at Prestleigh': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'The Townes at Prestleigh': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'The Villas at Galvin\'s Ridge': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Thornton Townes': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Townes at Anderson Farm': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Townes at Carver Station 20s': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Townes at Carver Station 22s': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Westerly': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Wilson\'s Ridge 20\' THs': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Wilson\'s Ridge 50s': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      },
+      'Wilson\'s Ridge 60s': {        about: '',        amenities: '',        schools: '',        mapLink: '',        address: ''      }
+    };
+
+
+
+    function toggleDataLoad() {
+      const content = document.getElementById('dataLoadContent');
+      const icon = document.getElementById('collapseIcon');
+      content.classList.toggle('collapsed');
+      icon.classList.toggle('collapsed');
+    }
+
+    function toggleSearchSection() {
+      const content = document.getElementById('searchContent');
+      const arrow = document.getElementById('searchArrow');
+      content.classList.toggle('collapsed');
+      arrow.classList.toggle('collapsed');
+    }
+
+    function updateModelOptions() {
+      const projectSelect = document.getElementById('projectSearch');
+      const planSelect = document.getElementById('planCode');
+      const selectedProjects = Array.from(projectSelect.selectedOptions).map(o => o.value);
+
+      if (selectedProjects.length === 0) {
+        // Show all models if no community selected
+        const allOptions = planSelect.querySelectorAll('option');
+        allOptions.forEach(opt => opt.style.display = 'block');
+        return;
+      }
+
+      // Get all models used in selected communities
+      const availableModels = new Set();
+      allHomes.forEach(home => {
+        if (selectedProjects.includes(home.Project)) {
+          availableModels.add(home.Plan);
+        }
+      });
+
+      // Show only models in selected communities
+      const allOptions = planSelect.querySelectorAll('option');
+      allOptions.forEach(opt => {
+        if (availableModels.has(opt.value)) {
+          opt.style.display = 'block';
+        } else {
+          opt.style.display = 'none';
+          opt.selected = false;
+        }
+      });
+
+      applyFilters();
+    }
+
+    function loadFromFile(event) {
+      const statusDiv = document.getElementById('loadStatus');
+      const file = event.target.files[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const result = JSON.parse(e.target.result);
+          allHomes = result.Inventory || result || [];
+
+          if (allHomes.length === 0) {
+            throw new Error('No inventory data found in file');
+          }
+
+          statusDiv.textContent = `✓ Loaded ${allHomes.length} homes from file`;
+          statusDiv.className = 'success';
+
+          populateCommunityDropdown();
+          applyFilters();
+        } catch (error) {
+          statusDiv.textContent = `✗ Error reading file: ${error.message}`;
+          statusDiv.className = 'error';
+          console.error(error);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function populateCommunityDropdown() {
+      const communities = [...new Set(allHomes.map(h => h.Project))].sort();
+      const select = document.getElementById('projectSearch');
+      const currentValues = Array.from(select.selectedOptions).map(o => o.value);
+
+      select.innerHTML = '';
+
+      communities.forEach(community => {
+        const option = document.createElement('option');
+        option.value = community;
+        option.textContent = community;
+        select.appendChild(option);
+      });
+
+      currentValues.forEach(value => {
+        const option = select.querySelector(`option[value="${value}"]`);
+        if (option) option.selected = true;
+      });
+    }
+
+    function getMilestoneStage(milestone) {
+      const m = parseInt(milestone);
+      if (!milestone || milestone === '') return 'empty';
+      if (m >= 9) return 'closing';
+      if (m >= 5) return 'incentives';
+      if (m >= 1) return 'presale';
+      return 'empty';
+    }
+
+    function getMilestoneLabel(milestone) {
+      if (!milestone || milestone === '') return 'Not Started';
+      const m = parseInt(milestone);
+      if (m >= 9) return `Stage ${m} - Closing Soon`;
+      if (m >= 5) return `Stage ${m} - Incentives`;
+      if (m >= 1) return `Stage ${m} - Presale`;
+      return 'Not Started';
+    }
+
+    function getMonthlyPayment(home, financingType) {
+      switch(financingType) {
+        case 'Conventional':
+          return home.ConventionalPayment ? parseFloat(home.ConventionalPayment) : 0;
+        case 'FHA':
+          return home.FHAPayment ? parseFloat(home.FHAPayment) : 0;
+        case 'VA':
+          return home.VAPayment ? parseFloat(home.VAPayment) : 0;
+        default:
+          return home.ConventionalPayment ? parseFloat(home.ConventionalPayment) : 0;
+      }
+    }
+
+    function updatePriceDisplay() {
+      const minPrice = parseInt(document.getElementById('minPrice').value);
+      const maxPrice = parseInt(document.getElementById('maxPrice').value);
+      document.getElementById('priceMinDisplay').textContent = '$' + minPrice.toLocaleString();
+      document.getElementById('priceMaxDisplay').textContent = '$' + maxPrice.toLocaleString();
+    }
+
+    function updateSqftDisplay() {
+      const minSqft = parseInt(document.getElementById('minSqft').value);
+      const maxSqft = parseInt(document.getElementById('maxSqft').value);
+      document.getElementById('sqftMinDisplay').textContent = minSqft.toLocaleString();
+      document.getElementById('sqftMaxDisplay').textContent = maxSqft.toLocaleString();
+    }
+
+    function updatePaymentDisplay() {
+      const minPayment = parseInt(document.getElementById('minPayment').value);
+      const maxPayment = parseInt(document.getElementById('maxPayment').value);
+      document.getElementById('paymentMinDisplay').textContent = minPayment.toLocaleString();
+      document.getElementById('paymentMaxDisplay').textContent = maxPayment.toLocaleString();
+    }
+
+    function applyFilters() {
+      const address = document.getElementById('addressSearch').value.toLowerCase();
+      const projectSelect = document.getElementById('projectSearch');
+      const selectedProjects = Array.from(projectSelect.selectedOptions).map(o => o.value);
+      const planSelect = document.getElementById('planCode');
+      const selectedPlans = Array.from(planSelect.selectedOptions).map(o => o.value);
+      const minPrice = parseInt(document.getElementById('minPrice').value) || 0;
+      const maxPrice = parseInt(document.getElementById('maxPrice').value) || Infinity;
+      const bedsMin = document.getElementById('bedsMin').value ? parseFloat(document.getElementById('bedsMin').value) : 0;
+      const bedsMax = document.getElementById('bedsMax').value ? parseFloat(document.getElementById('bedsMax').value) : Infinity;
+      const bathsMin = document.getElementById('bathsMin').value ? parseFloat(document.getElementById('bathsMin').value) : 0;
+      const bathsMax = document.getElementById('bathsMax').value ? parseFloat(document.getElementById('bathsMax').value) : Infinity;
+      const milestoneStart = parseInt(document.getElementById('milestoneStart').value) || 0;
+      const milestoneStop = parseInt(document.getElementById('milestoneStop').value) || 13;
+      const minSqft = parseInt(document.getElementById('minSqft').value) || 0;
+      const maxSqft = parseInt(document.getElementById('maxSqft').value) || Infinity;
+      const financingType = document.getElementById('financingType').value;
+      const minPayment = parseInt(document.getElementById('minPayment').value) || 0;
+      const maxPayment = parseInt(document.getElementById('maxPayment').value) || Infinity;
+
+      const filtered = allHomes.filter(home => {
+        const matchAddress = !address || home.HomeAddress.toLowerCase().includes(address) || home.Job.includes(address);
+        const matchProject = selectedProjects.length === 0 || selectedProjects.includes(home.Project);
+        const matchPlan = selectedPlans.length === 0 || selectedPlans.includes(home.Plan);
+        const matchPrice = home.HomePrice >= minPrice && home.HomePrice <= maxPrice;
+        const matchBeds = home.Bed >= bedsMin && home.Bed <= bedsMax;
+        const matchBaths = home.Bath >= bathsMin && home.Bath <= bathsMax;
+
+        const homeStage = parseInt(home.Milestone) || 0;
+        const matchMilestone = homeStage >= milestoneStart && homeStage <= milestoneStop;
+
+        const matchSqft = home.Sqft >= minSqft && home.Sqft <= maxSqft;
+
+        const monthlyPayment = getMonthlyPayment(home, financingType);
+        const matchPayment = monthlyPayment >= minPayment && monthlyPayment <= maxPayment;
+
+        return matchAddress && matchProject && matchPlan && matchPrice && matchBeds && matchBaths && matchMilestone && matchSqft && matchPayment;
+      });
+
+      displayResults(filtered, financingType);
+    }
+
+    function displayResults(homes, financingType) {
+      const tbody = document.getElementById('tableBody');
+      const info = document.getElementById('resultsInfo');
+
+      displayedHomes = homes;
+      currentSortColumn = null;
+      currentSortOrder = 'asc';
+
+      const infoText = `${homes.length} homes found`;
+      info.innerHTML = `<span>${infoText}</span><button class="export-btn" onclick="exportToCSV()">Export CSV</button>`;
+
+      if (homes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" class="no-results">No homes match your filters</td></tr>';
+        clearSortIndicators();
+        return;
+      }
+
+      renderTable(homes, financingType);
+      addHeaderClickListeners(financingType);
+    }
+
+    function renderTable(homes, financingType) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = homes.map(home => {
+        const monthlyPayment = getMonthlyPayment(home, financingType);
+        const modelName = getModelName(home.Plan);
+        const communityTooltip = getCommunityTooltip(home.Project);
+        return `
+        <tr>
+          <td><strong>${home.Job}</strong></td>
+          <td>${home.HomeAddress}</td>
+          <td>${communityTooltip}</td>
+          <td>${modelName}</td>
+          <td>${home.Elv}</td>
+          <td>${home.Sqft.toLocaleString()}</td>
+          <td class="centered">${home.Bed}</td>
+          <td class="centered">${home.Bath}</td>
+          <td class="centered">${home.Garage}</td>
+          <td class="centered">${home.Story}</td>
+          <td><span class="milestone ${getMilestoneStage(home.Milestone)}" title="${getMilestoneLabel(home.Milestone)}">${home.Milestone || '-'}</span></td>
+          <td class="price">$${home.HomePrice.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+          <td class="price">$${monthlyPayment.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        </tr>
+      `;
+      }).join('');
+    }
+
+    function addHeaderClickListeners(financingType) {
+      const headers = document.querySelectorAll('th');
+      headers.forEach((th, index) => {
+        th.onclick = () => sortTable(index, financingType);
+      });
+    }
+
+    function sortTable(columnIndex, financingType) {
+      if (currentSortColumn === columnIndex) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = columnIndex;
+        currentSortOrder = 'asc';
+      }
+
+      const columnNames = ['Job', 'HomeAddress', 'Project', 'Plan', 'Elv', 'Sqft', 'Bed', 'Bath', 'Garage', 'Story', 'Milestone', 'HomePrice', 'ConventionalPayment'];
+      const columnName = columnNames[columnIndex];
+
+      const sorted = [...displayedHomes].sort((a, b) => {
+        let aVal, bVal;
+
+        if (columnIndex === 12) {
+          // Monthly Payment column
+          aVal = getMonthlyPayment(a, financingType);
+          bVal = getMonthlyPayment(b, financingType);
+        } else if (columnIndex === 5 || columnIndex === 6 || columnIndex === 7 || columnIndex === 8 || columnIndex === 9 || columnIndex === 11) {
+          // Numeric columns (Sqft, Bed, Bath, Garage, Story, HomePrice)
+          aVal = parseFloat(a[columnName]) || 0;
+          bVal = parseFloat(b[columnName]) || 0;
+        } else {
+          // String columns
+          aVal = String(a[columnName] || '').toLowerCase();
+          bVal = String(b[columnName] || '').toLowerCase();
+        }
+
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return currentSortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+        } else {
+          return currentSortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+      });
+
+      clearSortIndicators();
+      updateSortIndicator(columnIndex);
+      renderTable(sorted, financingType);
+    }
+
+    function clearSortIndicators() {
+      document.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+      });
+    }
+
+    function updateSortIndicator(columnIndex) {
+      const headers = document.querySelectorAll('th');
+      const header = headers[columnIndex];
+      if (currentSortOrder === 'asc') {
+        header.classList.add('sort-asc');
+      } else {
+        header.classList.add('sort-desc');
+      }
+    }
+
+    const modelMap = {
+      '1381': 'Altamont',
+      '1418': 'Pearson',
+      '1419': 'Pearson Rear Load',
+      '1420': 'Pearson',
+      '1461': 'Maywood',
+      '1462': 'Newton',
+      '1497': 'Freeport',
+      '1498': 'Freeport',
+      '1510': 'Jonathan',
+      '1554': 'Mitchell',
+      '1564': 'Denver',
+      '1566': 'Sydney',
+      '1582': 'Beckett',
+      '1613': 'Taylor',
+      '1615': 'Payton',
+      '1620': 'Aria',
+      '1658': 'Pattison',
+      '1673': 'Bristol',
+      '1698': 'Lansing',
+      '1749': 'Darwin',
+      '1750': 'Darwin',
+      '1760': 'Carson',
+      '1764': 'Cali',
+      '1765': 'Cali',
+      '1797': 'Clifton',
+      '1821': 'Haywood',
+      '1823': 'Collin',
+      '1825': 'Blake',
+      '1878': 'Sophie',
+      '1883': 'Dover',
+      '1892': 'Booth',
+      '1900': 'Azalea',
+      '1906': 'Aberdeen',
+      '1991': 'Belhaven',
+      '1992': 'Belhaven',
+      '1998': 'Blakley',
+      '2057': 'Walden',
+      '2147': 'Ellis',
+      '2163': 'Penwell',
+      '2164': 'Penwell',
+      '2174': 'Elston',
+      '2203': 'Manning',
+      '2222': 'Spencer',
+      '2283': 'Hadleigh',
+      '2290': 'Kathryn',
+      '2315': 'Stella',
+      '2340': 'Galen',
+      '2341': 'Galen',
+      '2361': 'Robie',
+      '2363': 'Robie',
+      '2396': 'Sierra',
+      '2459': 'Cooper',
+      '2511': 'Hayden',
+      '2512': 'Hayden',
+      '2531': 'Alec',
+      '2532': 'Alec',
+      '2561': 'Fleetwood',
+      '2585': 'Landon',
+      '2628': 'Calhoun',
+      '2629': 'Calhoun',
+      '2638': 'Jackson',
+      '2639': 'Jackson',
+      '2651': 'Edisto',
+      '2792': 'Lucas',
+      '2800': 'Wilmington',
+      '2804': 'Hanover',
+      '2896': 'Lawson',
+      '2922': 'Summit',
+      '2961': 'Olivia',
+      '3081': 'Morgan',
+      '3112': 'Hartwell',
+      '3123': 'Hampshire',
+      '3133': 'Jordan',
+      '3142': 'Columbia',
+      '3262': 'Norman',
+      '3396': 'Tillery',
+      '3475': 'Bennett',
+      '3490': 'Wylie',
+      'T203': 'Linville',
+      'T336': 'Nash Rear Load'
+    };
+
+    function getModelName(planCode) {
+      return modelMap[planCode] || planCode;
+    }
+
+    function getCommunityTooltip(communityName) {
+      const escapedName = communityName.replace(/'/g, "\\'");
+      return `<span class="community-name" onclick="openCommunityModal('${escapedName}')">${communityName}</span>`;
+    }
+
+    function openCommunityModal(communityName) {
+      // Initialize empty data if community doesn't exist yet
+      if (!communityData[communityName]) {
+        communityData[communityName] = {
+          about: '',
+          amenities: '',
+          schools: '',
+          address: '',
+          mapLink: ''
+        };
+      }
+
+      const data = communityData[communityName];
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+
+      modalTitle.textContent = communityName;
+
+      modalBody.innerHTML = `
+        <div class="modal-section">
+          <div class="modal-section-title">About</div>
+          <div class="modal-section-content">${data.about || '(No information yet)'}</div>
+          <div class="modal-section-edit">
+            <textarea id="edit-about" placeholder="About this community...">${data.about}</textarea>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Amenities</div>
+          <div class="modal-section-content">${data.amenities || '(No information yet)'}</div>
+          <div class="modal-section-edit">
+            <textarea id="edit-amenities" placeholder="Community amenities...">${data.amenities}</textarea>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Schools</div>
+          <div class="modal-section-content">${data.schools || '(No information yet)'}</div>
+          <div class="modal-section-edit">
+            <textarea id="edit-schools" placeholder="Schools in the area...">${data.schools}</textarea>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Address</div>
+          <div class="modal-section-content">${data.address || '(No information yet)'}</div>
+          <div class="modal-section-edit">
+            <input type="text" id="edit-address" placeholder="Community address..." value="${data.address}">
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Community Map</div>
+          <div class="modal-section-content">
+            ${data.mapLink ? `<a href="${data.mapLink}" target="_blank" class="modal-link">📍 View Community Map</a>` : '(No map link yet)'}
+          </div>
+          <div class="modal-section-edit">
+            <input type="text" id="edit-mapLink" placeholder="Map link URL..." value="${data.mapLink}">
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button class="modal-edit-btn" id="editBtn" onclick="toggleEditMode('${communityName}')">Edit</button>
+          <button class="modal-save-btn" id="saveBtn" style="display: none;" onclick="saveCommunityData('${communityName}')">Save Changes</button>
+          <button class="modal-cancel-btn" id="cancelBtn" style="display: none;" onclick="toggleEditMode('${communityName}')">Cancel</button>
+        </div>
+      `;
+
+      document.getElementById('communityModal').classList.remove('edit-mode');
+      document.getElementById('communityModal').classList.add('active');
+    }
+
+    function toggleEditMode(communityName) {
+      const modalBody = document.getElementById('modalBody');
+      const editBtn = document.getElementById('editBtn');
+      const saveBtn = document.getElementById('saveBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+
+      const isEditing = modalBody.classList.contains('edit-mode');
+
+      if (isEditing) {
+        modalBody.classList.remove('edit-mode');
+        editBtn.style.display = 'block';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+      } else {
+        modalBody.classList.add('edit-mode');
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'block';
+        cancelBtn.style.display = 'block';
+      }
+    }
+
+    function saveCommunityData(communityName) {
+      const about = document.getElementById('edit-about').value;
+      const amenities = document.getElementById('edit-amenities').value;
+      const schools = document.getElementById('edit-schools').value;
+      const address = document.getElementById('edit-address').value;
+      const mapLink = document.getElementById('edit-mapLink').value;
+
+      communityData[communityName] = {
+        about,
+        amenities,
+        schools,
+        address,
+        mapLink
+      };
+
+      toggleEditMode(communityName);
+      openCommunityModal(communityName);
+      alert('Community information updated!');
+    }
+
+    function closeCommunityModal(event) {
+      if (event && event.target.id !== 'communityModal') return;
+      document.getElementById('communityModal').classList.remove('active');
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeCommunityModal();
+      }
+    });
+
+    function clearFilters() {
+      document.getElementById('addressSearch').value = '';
+      document.getElementById('projectSearch').selectedIndex = -1;
+      document.getElementById('planCode').selectedIndex = -1;
+      document.getElementById('minPrice').value = '0';
+      document.getElementById('maxPrice').value = '999999';
+      document.getElementById('bedsMin').value = '';
+      document.getElementById('bedsMax').value = '';
+      document.getElementById('bathsMin').value = '';
+      document.getElementById('bathsMax').value = '';
+      document.getElementById('financingType').value = '';
+      document.getElementById('minPayment').value = '0';
+      document.getElementById('maxPayment').value = '9999';
+      document.getElementById('milestoneStart').value = '';
+      document.getElementById('milestoneStop').value = '';
+      document.getElementById('minSqft').value = '0';
+      document.getElementById('maxSqft').value = '9999';
+      updatePriceDisplay();
+      updateSqftDisplay();
+      updatePaymentDisplay();
+      applyFilters();
+    }
+
+
+    function exportToCSV() {
+      if (allHomes.length === 0) {
+        alert('No data to export. Load data first.');
+        return;
+      }
+
+      const tbody = document.getElementById('tableBody');
+      const rows = tbody.querySelectorAll('tr:not(:has(.no-results))');
+
+      if (rows.length === 0) {
+        alert('No homes to export. Adjust filters.');
+        return;
+      }
+
+      const headers = ['Lot#', 'Address', 'Community', 'Model', 'Elv', 'SQFT', 'Bed', 'Bath', 'Garage', 'Story', 'Milestone', 'Home Price', 'Monthly Payment'];
+      const csv = [headers.join(',')];
+
+      rows.forEach(row => {
+        if (row.style.display !== 'none') {
+          const cells = row.querySelectorAll('td');
+          const rowData = Array.from(cells).map(cell => {
+            let text = cell.textContent.trim();
+            text = text.replace(/\s*-\s*(Early|Mid|Late|Complete|Not Started)$/, '');
+            if (text.includes(',')) text = `"${text}"`;
+            return text;
+          });
+          csv.push(rowData.join(','));
+        }
+      });
+
+      const csvContent = csv.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `drhorton-inventory-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+  </script>
