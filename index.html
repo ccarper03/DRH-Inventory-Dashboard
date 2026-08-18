@@ -687,6 +687,13 @@
         <input type="number" class="filter-input" id="maxMilestone" placeholder="Max" min="0" step="1">
       </div>
 
+      <div class="filter-section">
+        <label class="filter-label">Financing (Est. Payment)</label>
+        <input type="number" class="filter-input" id="downPaymentPct" placeholder="Down %" min="0" max="100" step="0.5" value="5">
+        <input type="number" class="filter-input" id="stdRate" placeholder="Standard Rate %" min="0" max="20" step="0.001" value="6.647">
+        <input type="number" class="filter-input" id="bfcRate" placeholder="BFC Rate % (optional)" min="0" max="20" step="0.001">
+      </div>
+
       <button class="clear-btn" id="clearFiltersBtn">Clear Filters</button>
 
       <div class="stats-box">
@@ -728,6 +735,8 @@
               <th data-column="Project">Community</th>
               <th data-column="Plan">Model</th>
               <th data-column="HomePrice">Price</th>
+              <th data-column="MonthlyPayment">Payment</th>
+              <th data-column="BFCPayment">Payment (BFC)</th>
               <th data-column="Bed">Beds</th>
               <th data-column="Bath">Baths</th>
               <th data-column="Sqft">Sqft</th>
@@ -735,7 +744,7 @@
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="9" style="text-align: center; color: #999;">No data loaded yet</td></tr>
+            <tr><td colspan="11" style="text-align: center; color: #999;">No data loaded yet</td></tr>
           </tbody>
         </table>
       </div>
@@ -886,75 +895,79 @@
       "3475": "Bennett"
     };
 
-    // Community landing page links - All 66 communities from inventory
+    // Community landing page links - verified real DR Horton community pages (researched 2026-08-18)
+    // Format: https://www.drhorton.com/north-carolina/{market}/{city}/{community-slug}
+    // A few communities share one marketing page for multiple lot-width/phase variants (DRH consolidates those on-site
+    // even though the sales system tracks them as separate project codes) - noted inline where that's the case.
     const communityLinks = {
-      "Anderson Farm": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/anderson-farm",
-      "Baker Farm": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/baker-farm",
-      "Barwell Park": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/barwell-park",
-      "Battle Crossings": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/battle-crossings",
-      "Belle Grove SFA": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/belle-grove-sfa",
-      "Belle Grove SFD": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/belle-grove-sfd",
-      "Bexford - Single Family": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/bexford--single-family",
-      "Bexford - Townes": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/bexford--townes",
-      "Bexford-Townes RL": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/bexford-townes-rl",
-      "Carver Station": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/carver-station",
-      "Chapel Townes": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/chapel-townes",
-      "Collins Ridge 26' TH": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/collins-ridge-26-th",
-      "Collins Ridge 40'": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/collins-ridge-40",
-      "Collins Ridge 50'": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/collins-ridge-50",
-      "Collinswood - Freedom": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/collinswood--freedom",
-      "Collinswood - Traditions": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/collinswood--traditions",
-      "Copper Run North": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/copper-run-north",
-      "Copper Run South": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/copper-run-south",
-      "Cross Creek": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/cross-creek",
-      "Eagle Creek": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/eagle-creek",
-      "Galvin's Ridge - DRHe": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/galvins-ridge--drhe",
-      "Galvin's Ridge - THs": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/galvins-ridge--ths",
-      "Gretchen Pines": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/gretchen-pines",
-      "Hawley Glen": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/hawley-glen",
-      "Haywood Glen PH4 35s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/haywood-glen-ph4-35s",
-      "Haywood Glen PH4 60s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/haywood-glen-ph4-60s",
-      "Honeycutt Oaks": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/honeycutt-oaks",
-      "Honeycutt Oaks THs": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/honeycutt-oaks-ths",
-      "Horton Park 52s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/horton-park-52s",
-      "Horton Park 62s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/horton-park-62s",
-      "Kalas Falls - DRH": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/kalas-falls--drh",
-      "Laurel Oaks": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/laurel-oaks",
-      "Laurel Oaks - Freedom": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/laurel-oaks--freedom",
-      "Laurel Oaks - THs": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/laurel-oaks--ths",
-      "Lawson Glen": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/lawson-glen",
-      "Madden West - SF": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/madden-west--sf",
-      "Madden West THs": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/madden-west-ths",
-      "Mangum Farms": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/mangum-farms",
-      "Manors at Winston Pointe": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/manors-at-winston-pointe",
-      "Martin Farms": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/martin-farms",
-      "Martin Farms Manors": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/martin-farms-manors",
-      "Martin Farms Townes": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/martin-farms-townes",
-      "Martin Farms Villas": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/martin-farms-villas",
-      "Mason Ridge": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/mason-ridge",
-      "Matthews Landing - 40' SFD": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/matthews-landing--40-sfd",
-      "Matthews Landing - 50' SFD": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/matthews-landing--50-sfd",
-      "Matthews Landing - THs": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/matthews-landing--ths",
-      "Matthews Landing - THs RL": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/matthews-landing--ths-rl",
-      "North Gate": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/north-gate",
-      "Olive Branch": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/olive-branch",
-      "Shahbain Reserve": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/shahbain-reserve",
-      "South Pinehurst Cottages": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/south-pinehurst-cottages",
-      "Swift Creek Farm": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/swift-creek-farm",
-      "The Grove at Winston Pointe": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/the-grove-at-winston-pointe",
-      "The Landing at Winston Pointe": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/the-landing-at-winston-pointe",
-      "The Manors at Swift Creek Farm": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/the-manors-at-swift-creek-farm",
-      "The Reserve at Prestleigh": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/the-reserve-at-prestleigh",
-      "The Townes at Prestleigh": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/the-townes-at-prestleigh",
-      "The Villas at Galvin's Ridge": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/the-villas-at-galvins-ridge",
-      "Thornton Townes": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/thornton-townes",
-      "Townes at Anderson Farm": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/townes-at-anderson-farm",
-      "Townes at Carver Station 20s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/townes-at-carver-station-20s",
-      "Townes at Carver Station 22s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/townes-at-carver-station-22s",
-      "Westerly": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/westerly",
-      "Wilson's Ridge 20' THs": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/wilsons-ridge-20-ths",
-      "Wilson's Ridge 50s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/wilsons-ridge-50s",
-      "Wilson's Ridge 60s": "https://www.drhorton.com/find-your-home/raleigh-nc/communities/wilsons-ridge-60s"
+      "Anderson Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/anderson-farm",
+      "Baker Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/youngsville/baker-farm",
+      "Barwell Park": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/barwell-park",
+      "Battle Crossings": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/battle-crossings",
+      "Belle Grove SFA": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/the-townes-at-belle-grove",
+      "Belle Grove SFD": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/belle-grove",
+      "Bexford - Single Family": "https://www.drhorton.com/north-carolina/raleigh-durham/willow-spring/bexford",
+      "Bexford - Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/willow-spring/the-townes-at-bexford",
+      "Bexford-Townes RL": "https://www.drhorton.com/north-carolina/raleigh-durham/willow-spring/the-townes-at-bexford",
+      "Carver Station": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/carver-station",
+      "Chapel Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/chapel-townes",
+      "Collins Ridge 26' TH": "https://www.drhorton.com/north-carolina/raleigh-durham/hillsborough/collins-ridge-townes",
+      "Collins Ridge 40'": "https://www.drhorton.com/north-carolina/raleigh-durham/hillsborough/collins-ridge",
+      "Collins Ridge 50'": "https://www.drhorton.com/north-carolina/raleigh-durham/hillsborough/collins-ridge",
+      "Collinswood - Freedom": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-villas-at-collinswood",
+      "Collinswood - Traditions": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/collinswood",
+      "Copper Run North": "https://www.drhorton.com/north-carolina/raleigh-durham",
+      "Copper Run South": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/copper-run-south",
+      "Cross Creek": "https://www.drhorton.com/north-carolina/fayetteville/spring-lake/cross-creek",
+      "Eagle Creek": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/eagle-creek",
+      "Galvin's Ridge - DRHe": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/galvins-ridge",
+      "Galvin's Ridge - THs": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-townes-at-galvins-ridge",
+      "Gretchen Pines": "https://www.drhorton.com/north-carolina/raleigh-durham/west-end/gretchen-pines",
+      "Hawley Glen": "https://www.drhorton.com/north-carolina/raleigh-durham/lillington/hawley-glen",
+      "Haywood Glen PH4 35s": "https://www.drhorton.com/north-carolina/raleigh-durham/knightdale/the-villas-at-haywood-glen",
+      "Haywood Glen PH4 60s": "https://www.drhorton.com/north-carolina/raleigh-durham/knightdale/the-manors-at-haywood-glen",
+      "Honeycutt Oaks": "https://www.drhorton.com/north-carolina/raleigh-durham/angier/honeycutt-oaks",
+      "Honeycutt Oaks THs": "https://www.drhorton.com/north-carolina/raleigh-durham/angier/the-townes-at-honeycutt-oaks",
+      "Horton Park 52s": "https://www.drhorton.com/north-carolina/raleigh-durham/apex/horton-park",
+      "Horton Park 62s": "https://www.drhorton.com/north-carolina/raleigh-durham/apex/the-estates-at-horton-park",
+      "Kalas Falls - DRH": "https://www.drhorton.com/north-carolina/raleigh-durham/wake-forest/kalas-falls",
+      "Laurel Oaks": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/laurel-oaks",
+      "Laurel Oaks - Freedom": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-villas-at-laurel-oaks",
+      "Laurel Oaks - THs": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-townes-at-laurel-oaks",
+      "Lawson Glen": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/lawson-glen",
+      "Madden West - SF": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/madden-west",
+      "Madden West THs": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-townes-at-madden-west",
+      "Mangum Farms": "https://www.drhorton.com/north-carolina/raleigh-durham/stem/mangum-farms",
+      "Manors at Winston Pointe": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-manors-at-winston-pointe",
+      "Martin Farms": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/martin-farms",
+      "Martin Farms Manors": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-manors-at-martin-farms",
+      "Martin Farms Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-townes-at-martin-farms",
+      "Martin Farms Villas": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-villas-at-martin-farms",
+      "Mason Ridge": "https://www.drhorton.com/north-carolina/fayetteville/spring-lake/mason-ridge",
+      "Matthews Landing - 40' SFD": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-grove-at-matthews-landing",
+      "Matthews Landing - 50' SFD": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-grove-at-matthews-landing",
+      "Matthews Landing - THs": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-townes-at-matthews-landing",
+      "Matthews Landing - THs RL": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-townes-at-matthews-landing",
+      "North Gate": "https://www.drhorton.com/north-carolina/raleigh-durham/vass/north-gate",
+      "Olive Branch": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/olive-branch",
+      "Porters Landing": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/porters-landing",
+      "Shahbain Reserve": "https://www.drhorton.com/north-carolina/raleigh-durham/raeford/shahbain-reserve",
+      "South Pinehurst Cottages": "https://www.drhorton.com/north-carolina/raleigh-durham/pinehurst/south-pinehurst-cottages",
+      "Swift Creek Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/swift-creek-farm",
+      "The Grove at Winston Pointe": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-grove-at-winston-pointe",
+      "The Landing at Winston Pointe": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-landing-at-winston-pointe",
+      "The Manors at Swift Creek Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-manors-at-swift-creek-farm",
+      "The Reserve at Prestleigh": "https://www.drhorton.com/north-carolina/raleigh-durham/wake-forest/the-reserve-at-prestleigh",
+      "The Townes at Prestleigh": "https://www.drhorton.com/north-carolina/raleigh-durham/wake-forest/the-townes-at-prestleigh",
+      "The Villas at Galvin's Ridge": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-villas-at-galvins-ridge",
+      "Thornton Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/thornton-townes",
+      "Townes at Anderson Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/the-townes-at-anderson-farm",
+      "Townes at Carver Station 20s": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/the-townes-at-carver-station",
+      "Townes at Carver Station 22s": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/the-townes-at-carver-station",
+      "Westerly": "https://www.drhorton.com/north-carolina/raleigh-durham/lillington/westerly",
+      "Wilson's Ridge 20' THs": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/the-townes-at-wilsons-ridge",
+      "Wilson's Ridge 50s": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/wilsons-ridge",
+      "Wilson's Ridge 60s": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/wilsons-ridge"
     };
 
     // Community metadata
@@ -976,6 +989,9 @@
     const maxBaths = document.getElementById('maxBaths');
     const minMilestone = document.getElementById('minMilestone');
     const maxMilestone = document.getElementById('maxMilestone');
+    const downPaymentPct = document.getElementById('downPaymentPct');
+    const stdRate = document.getElementById('stdRate');
+    const bfcRate = document.getElementById('bfcRate');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const resultCount = document.getElementById('resultCount');
     const avgPrice = document.getElementById('avgPrice');
@@ -1107,6 +1123,16 @@
           bVal = planToModel[b.Plan] || b.Plan || '';
         }
 
+        if (currentSortColumn === 'MonthlyPayment') {
+          aVal = computeStdPayment(a) ?? -1;
+          bVal = computeStdPayment(b) ?? -1;
+        }
+
+        if (currentSortColumn === 'BFCPayment') {
+          aVal = computeBfcPayment(a) ?? -1;
+          bVal = computeBfcPayment(b) ?? -1;
+        }
+
         if (currentSortColumn === 'HomePrice' || currentSortColumn === 'Bed' || currentSortColumn === 'Bath' || currentSortColumn === 'Sqft' || currentSortColumn === 'Milestone') {
           aVal = parseFloat(aVal) || 0;
           bVal = parseFloat(bVal) || 0;
@@ -1128,6 +1154,34 @@
       return sorted;
     }
 
+    // Estimate a standard 30-yr (360mo) conventional P&I monthly payment
+    function computeMonthlyPayment(price, downPct, ratePct) {
+      if (!price || price <= 0) return null;
+      const rate = parseFloat(ratePct);
+      if (ratePct === '' || ratePct === null || ratePct === undefined || isNaN(rate) || rate < 0) return null;
+      const down = (downPct !== '' && downPct !== null && !isNaN(parseFloat(downPct))) ? parseFloat(downPct) : 0;
+      const loanAmt = price - (price * (down / 100));
+      if (loanAmt <= 0) return 0;
+      const monthlyRate = (rate / 100) / 12;
+      const n = 360;
+      if (monthlyRate === 0) return loanAmt / n;
+      const factor = Math.pow(1 + monthlyRate, n);
+      return loanAmt * (monthlyRate * factor) / (factor - 1);
+    }
+
+    function computeStdPayment(item) {
+      return computeMonthlyPayment(item.HomePrice || 0, downPaymentPct.value, stdRate.value);
+    }
+
+    function computeBfcPayment(item) {
+      if (bfcRate.value === '' || bfcRate.value === null || bfcRate.value === undefined) return null;
+      return computeMonthlyPayment(item.HomePrice || 0, downPaymentPct.value, bfcRate.value);
+    }
+
+    function formatPayment(val) {
+      return val != null ? '$' + Math.round(val).toLocaleString('en-US') + '/mo' : '<span style="color: #999;">—</span>';
+    }
+
     // Filter and render
     function filter() {
       const search = searchInput.value.toLowerCase();
@@ -1144,13 +1198,14 @@
         const address = (item.HomeAddress || '').toLowerCase();
         const lot = (item.Job || '').toLowerCase();
         const plan = (item.Plan || '').toLowerCase();
+        const modelName = (planToModel[item.Plan] || '').toLowerCase();
         const community = item.Project || item.Community || '';
         const price = item.HomePrice || 0;
         const beds = item.Bed || 0;
         const baths = item.Bath || 0;
         const itemMilestone = item.Milestone ? parseInt(item.Milestone) : 0;
 
-        const matchesSearch = !search || address.includes(search) || lot.includes(search) || plan.includes(search);
+        const matchesSearch = !search || address.includes(search) || lot.includes(search) || plan.includes(search) || modelName.includes(search);
         const matchesPrice = price >= min && price <= max;
         const matchesBeds = beds >= minB && beds <= maxB;
         const matchesBaths = baths >= minBa && baths <= maxBa;
@@ -1166,7 +1221,7 @@
     // Render table
     function render() {
       if (filteredInventory.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
         resultCount.textContent = '0';
         avgPrice.textContent = '$0';
         return;
@@ -1181,6 +1236,8 @@
         const community = item.Project || item.Community || '';
         const communityLink = communityLinks[community] || '#';
         const modelName = planToModel[item.Plan] || item.Plan || '';
+        const stdPaymentDisplay = formatPayment(computeStdPayment(item));
+        const bfcPaymentDisplay = formatPayment(computeBfcPayment(item));
 
         let milestoneDisplay = '<span style="color: #999;">—</span>';
         if (milestone !== '' && milestone !== null && milestone !== undefined) {
@@ -1201,6 +1258,8 @@
             <td><a href="${communityLink}" target="_blank" class="community-link" title="Visit community page">${community}</a></td>
             <td>${modelName}</td>
             <td>$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+            <td>${stdPaymentDisplay}</td>
+            <td>${bfcPaymentDisplay}</td>
             <td>${item.Bed || ''}</td>
             <td>${item.Bath || ''}</td>
             <td>${item.Sqft || ''}</td>
@@ -1220,19 +1279,23 @@
         return;
       }
 
-      const headers = ['Lot #', 'Address', 'Community', 'Model', 'Price', 'Beds', 'Baths', 'Sqft', 'Milestone'];
+      const headers = ['Lot #', 'Address', 'Community', 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
       const sortedInventory = sortInventory();
 
       const rows = sortedInventory.map(item => {
         const price = item.HomePrice || 0;
         const milestone = item.Milestone || '';
         const modelName = planToModel[item.Plan] || item.Plan || '';
+        const stdPayment = computeStdPayment(item);
+        const bfcPayment = computeBfcPayment(item);
         return [
           item.Job || '',
           item.HomeAddress || '',
           item.Project || item.Community || '',
           modelName,
           price,
+          stdPayment != null ? Math.round(stdPayment) : '',
+          bfcPayment != null ? Math.round(bfcPayment) : '',
           item.Bed || '',
           item.Bath || '',
           item.Sqft || '',
@@ -1266,6 +1329,14 @@
     maxBaths.addEventListener('input', filter);
     minMilestone.addEventListener('input', filter);
     maxMilestone.addEventListener('input', filter);
+
+    function recalcPayments() {
+      if (allInventory.length === 0) return;
+      render();
+    }
+    downPaymentPct.addEventListener('input', recalcPayments);
+    stdRate.addEventListener('input', recalcPayments);
+    bfcRate.addEventListener('input', recalcPayments);
 
     clearFiltersBtn.addEventListener('click', () => {
       searchInput.value = '';
