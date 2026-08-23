@@ -66,6 +66,20 @@
       box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
     }
 
+    .filter-hint {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: #555;
+      font-weight: 500;
+      margin-bottom: -3px;
+    }
+
     .community-list {
       display: flex;
       flex-direction: column;
@@ -664,6 +678,11 @@
       </div>
 
       <div class="filter-section">
+        <label class="filter-label">Towns</label>
+        <div class="community-list" id="townList"></div>
+      </div>
+
+      <div class="filter-section">
         <label class="filter-label">Price</label>
         <input type="number" class="filter-input" id="minPrice" placeholder="Min">
         <input type="number" class="filter-input" id="maxPrice" placeholder="Max">
@@ -689,9 +708,17 @@
 
       <div class="filter-section">
         <label class="filter-label">Financing (Est. Payment)</label>
-        <input type="number" class="filter-input" id="downPaymentPct" placeholder="Down %" min="0" max="100" step="0.5" value="5">
-        <input type="number" class="filter-input" id="stdRate" placeholder="Standard Rate %" min="0" max="20" step="0.001" value="6.647">
-        <input type="number" class="filter-input" id="bfcRate" placeholder="BFC Rate % (optional)" min="0" max="20" step="0.001">
+        <p class="filter-hint">Estimates a 30-yr conventional monthly payment for every home using the inputs below. Adjust and the Payment column updates automatically.</p>
+
+        <label class="field-label">Down Payment %</label>
+        <input type="number" class="filter-input" id="downPaymentPct" placeholder="Down %" min="0" max="100" step="0.5" value="5" title="Down payment as a percent of the home price, e.g. 5 = 5% down">
+
+        <label class="field-label">Standard Rate %</label>
+        <input type="number" class="filter-input" id="stdRate" placeholder="Standard Rate %" min="0" max="20" step="0.001" value="6.647" title="Interest rate used to calculate the Payment column">
+
+        <label class="field-label">BFC Rate % (optional)</label>
+        <input type="number" class="filter-input" id="bfcRate" placeholder="BFC Rate % (optional)" min="0" max="20" step="0.001" title="Builder Forward Commitment rate. Enter a rate to add a Payment (BFC) column so you can compare it against the standard rate. Leave blank to hide that column.">
+        <p class="filter-hint">Leave BFC Rate blank to hide the Payment (BFC) column. Fill it in to compare against the standard-rate payment.</p>
       </div>
 
       <button class="clear-btn" id="clearFiltersBtn">Clear Filters</button>
@@ -733,10 +760,11 @@
               <th data-column="Job">Lot #</th>
               <th data-column="HomeAddress">Address</th>
               <th data-column="Project">Community</th>
+              <th data-column="Town">Town</th>
               <th data-column="Plan">Model</th>
               <th data-column="HomePrice">Price</th>
-              <th data-column="MonthlyPayment">Payment</th>
-              <th data-column="BFCPayment">Payment (BFC)</th>
+              <th data-column="MonthlyPayment" title="Estimated monthly payment at the Standard Rate set in the Financing filter (sidebar)">Payment</th>
+              <th data-column="BFCPayment" title="Estimated monthly payment at the BFC Rate set in the Financing filter (sidebar). Blank if no BFC Rate is entered">Payment (BFC)</th>
               <th data-column="Bed">Beds</th>
               <th data-column="Bath">Baths</th>
               <th data-column="Sqft">Sqft</th>
@@ -744,7 +772,7 @@
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="11" style="text-align: center; color: #999;">No data loaded yet</td></tr>
+            <tr><td colspan="12" style="text-align: center; color: #999;">No data loaded yet</td></tr>
           </tbody>
         </table>
       </div>
@@ -970,16 +998,91 @@
       "Wilson's Ridge 60s": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/wilsons-ridge"
     };
 
+    // Town each community is located in - derived from the verified community page URLs above (researched 2026-08-18).
+    // Copper Run North has no live page yet; town is inferred from Copper Run South (same immediate area) and unconfirmed.
+    const communityTowns = {
+      "Anderson Farm": "Wendell",
+      "Baker Farm": "Youngsville",
+      "Barwell Park": "Raleigh",
+      "Battle Crossings": "Raleigh",
+      "Belle Grove SFA": "Wendell",
+      "Belle Grove SFD": "Wendell",
+      "Bexford - Single Family": "Willow Spring",
+      "Bexford - Townes": "Willow Spring",
+      "Bexford-Townes RL": "Willow Spring",
+      "Carver Station": "Durham",
+      "Chapel Townes": "Raleigh",
+      "Collins Ridge 26' TH": "Hillsborough",
+      "Collins Ridge 40'": "Hillsborough",
+      "Collins Ridge 50'": "Hillsborough",
+      "Collinswood - Freedom": "Aberdeen",
+      "Collinswood - Traditions": "Aberdeen",
+      "Copper Run North": "Durham", // unconfirmed - inferred from Copper Run South
+      "Copper Run South": "Durham",
+      "Cross Creek": "Spring Lake",
+      "Eagle Creek": "Fuquay-Varina",
+      "Galvin's Ridge - DRHe": "Sanford",
+      "Galvin's Ridge - THs": "Sanford",
+      "Gretchen Pines": "West End",
+      "Hawley Glen": "Lillington",
+      "Haywood Glen PH4 35s": "Knightdale",
+      "Haywood Glen PH4 60s": "Knightdale",
+      "Honeycutt Oaks": "Angier",
+      "Honeycutt Oaks THs": "Angier",
+      "Horton Park 52s": "Apex",
+      "Horton Park 62s": "Apex",
+      "Kalas Falls - DRH": "Wake Forest",
+      "Laurel Oaks": "Sanford",
+      "Laurel Oaks - Freedom": "Sanford",
+      "Laurel Oaks - THs": "Sanford",
+      "Lawson Glen": "Clayton",
+      "Madden West - SF": "Fuquay-Varina",
+      "Madden West THs": "Fuquay-Varina",
+      "Mangum Farms": "Stem",
+      "Manors at Winston Pointe": "Clayton",
+      "Martin Farms": "Aberdeen",
+      "Martin Farms Manors": "Aberdeen",
+      "Martin Farms Townes": "Aberdeen",
+      "Martin Farms Villas": "Aberdeen",
+      "Mason Ridge": "Spring Lake",
+      "Matthews Landing - 40' SFD": "Fuquay-Varina",
+      "Matthews Landing - 50' SFD": "Fuquay-Varina",
+      "Matthews Landing - THs": "Fuquay-Varina",
+      "Matthews Landing - THs RL": "Fuquay-Varina",
+      "North Gate": "Vass",
+      "Olive Branch": "Wilson's Mills",
+      "Porters Landing": "Wendell",
+      "Shahbain Reserve": "Raeford",
+      "South Pinehurst Cottages": "Pinehurst",
+      "Swift Creek Farm": "Clayton",
+      "The Grove at Winston Pointe": "Clayton",
+      "The Landing at Winston Pointe": "Clayton",
+      "The Manors at Swift Creek Farm": "Clayton",
+      "The Reserve at Prestleigh": "Wake Forest",
+      "The Townes at Prestleigh": "Wake Forest",
+      "The Villas at Galvin's Ridge": "Sanford",
+      "Thornton Townes": "Raleigh",
+      "Townes at Anderson Farm": "Wendell",
+      "Townes at Carver Station 20s": "Durham",
+      "Townes at Carver Station 22s": "Durham",
+      "Westerly": "Lillington",
+      "Wilson's Ridge 20' THs": "Wilson's Mills",
+      "Wilson's Ridge 50s": "Wilson's Mills",
+      "Wilson's Ridge 60s": "Wilson's Mills"
+    };
+
     // Community metadata
     const communityData = {};
 
     let allInventory = [];
     let filteredInventory = [];
     let selectedCommunities = new Set();
+    let selectedTowns = new Set();
 
     const jsonFile = document.getElementById('jsonFile');
     const tableBody = document.getElementById('tableBody');
     const communityList = document.getElementById('communityList');
+    const townList = document.getElementById('townList');
     const searchInput = document.getElementById('searchInput');
     const minPrice = document.getElementById('minPrice');
     const maxPrice = document.getElementById('maxPrice');
@@ -1022,6 +1125,9 @@
           const uniqueCommunities = [...new Set(allInventory.map(item => item.Project || item.Community || ''))].filter(Boolean).sort();
           renderCommunityButtons(uniqueCommunities);
 
+          const uniqueTowns = [...new Set(uniqueCommunities.map(c => communityTowns[c] || ''))].filter(Boolean).sort();
+          renderTownButtons(uniqueTowns);
+
           resultsInfo.textContent = `Loaded ${allInventory.length} properties`;
           filter();
         } catch (err) {
@@ -1061,6 +1167,34 @@
         btn.classList.remove('active');
       } else {
         selectedCommunities.add(community);
+        btn.classList.add('active');
+      }
+    }
+
+    // Render town buttons
+    function renderTownButtons(towns) {
+      townList.innerHTML = '';
+      towns.forEach(town => {
+        const btn = document.createElement('button');
+        btn.className = 'community-btn';
+        btn.textContent = town;
+        btn.title = 'Click to filter by town';
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          toggleTown(town, btn);
+          filter();
+        });
+        townList.appendChild(btn);
+      });
+    }
+
+    // Toggle town selection (multi-select)
+    function toggleTown(town, btn) {
+      if (selectedTowns.has(town)) {
+        selectedTowns.delete(town);
+        btn.classList.remove('active');
+      } else {
+        selectedTowns.add(town);
         btn.classList.add('active');
       }
     }
@@ -1121,6 +1255,11 @@
         if (currentSortColumn === 'Plan') {
           aVal = planToModel[a.Plan] || a.Plan || '';
           bVal = planToModel[b.Plan] || b.Plan || '';
+        }
+
+        if (currentSortColumn === 'Town') {
+          aVal = communityTowns[a.Project || a.Community || ''] || '';
+          bVal = communityTowns[b.Project || b.Community || ''] || '';
         }
 
         if (currentSortColumn === 'MonthlyPayment') {
@@ -1200,6 +1339,7 @@
         const plan = (item.Plan || '').toLowerCase();
         const modelName = (planToModel[item.Plan] || '').toLowerCase();
         const community = item.Project || item.Community || '';
+        const town = communityTowns[community] || '';
         const price = item.HomePrice || 0;
         const beds = item.Bed || 0;
         const baths = item.Bath || 0;
@@ -1211,8 +1351,9 @@
         const matchesBaths = baths >= minBa && baths <= maxBa;
         const matchesMilestone = itemMilestone >= minM && itemMilestone <= maxM;
         const matchesCommunity = selectedCommunities.size === 0 || selectedCommunities.has(community);
+        const matchesTown = selectedTowns.size === 0 || selectedTowns.has(town);
 
-        return matchesSearch && matchesPrice && matchesBeds && matchesBaths && matchesMilestone && matchesCommunity;
+        return matchesSearch && matchesPrice && matchesBeds && matchesBaths && matchesMilestone && matchesCommunity && matchesTown;
       });
 
       render();
@@ -1221,7 +1362,7 @@
     // Render table
     function render() {
       if (filteredInventory.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
         resultCount.textContent = '0';
         avgPrice.textContent = '$0';
         return;
@@ -1235,6 +1376,7 @@
         const milestoneStage = milestoneStages[milestoneStr] || milestoneStages[String(milestone)] || 'Unknown Stage';
         const community = item.Project || item.Community || '';
         const communityLink = communityLinks[community] || '#';
+        const town = communityTowns[community] || '';
         const modelName = planToModel[item.Plan] || item.Plan || '';
         const stdPaymentDisplay = formatPayment(computeStdPayment(item));
         const bfcPaymentDisplay = formatPayment(computeBfcPayment(item));
@@ -1256,6 +1398,7 @@
             <td>${item.Job}</td>
             <td>${item.HomeAddress || ''}</td>
             <td><a href="${communityLink}" target="_blank" class="community-link" title="Visit community page">${community}</a></td>
+            <td>${town}</td>
             <td>${modelName}</td>
             <td>$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
             <td>${stdPaymentDisplay}</td>
@@ -1279,19 +1422,21 @@
         return;
       }
 
-      const headers = ['Lot #', 'Address', 'Community', 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
+      const headers = ['Lot #', 'Address', 'Community', 'Town', 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
       const sortedInventory = sortInventory();
 
       const rows = sortedInventory.map(item => {
         const price = item.HomePrice || 0;
         const milestone = item.Milestone || '';
+        const community = item.Project || item.Community || '';
         const modelName = planToModel[item.Plan] || item.Plan || '';
         const stdPayment = computeStdPayment(item);
         const bfcPayment = computeBfcPayment(item);
         return [
           item.Job || '',
           item.HomeAddress || '',
-          item.Project || item.Community || '',
+          community,
+          communityTowns[community] || '',
           modelName,
           price,
           stdPayment != null ? Math.round(stdPayment) : '',
@@ -1349,6 +1494,7 @@
       minMilestone.value = '';
       maxMilestone.value = '';
       selectedCommunities.clear();
+      selectedTowns.clear();
       document.querySelectorAll('.community-btn').forEach(btn => btn.classList.remove('active'));
       filter();
     });
