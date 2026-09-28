@@ -703,6 +703,23 @@
     .stage-chip .dot.early { background: #e8d5c4; border-color: #c8b499; }
     .stage-chip:hover span { text-decoration: underline; }
 
+    /* ---- NOT-PRICED HOMES ---- */
+    tr.unpriced { background: #fafafa; }
+    tr.unpriced td { color: #9a9a9a; }
+    tr.unpriced .community-link { color: #86a9d4; }
+    tr.unpriced .milestone-badge { opacity: 0.55; }
+    .np-label {
+      display: inline-block; font-size: 11px; font-weight: 700; color: #7a6a52;
+      background: #f3eee6; border: 1px solid #e2d8c8; border-radius: 3px; padding: 1px 6px; white-space: nowrap;
+    }
+    .np-raw { display: block; font-size: 11px; color: #aaa; margin-top: 2px; white-space: nowrap; }
+    .tag-priced { background: #e6f2ff; color: #0052a3; border: 1px solid #99ccff; }
+    .check-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin-top: 2px; }
+    .check-row input { width: 16px; height: 16px; }
+    .lookup-gaps { font-size: 11px; color: #888; line-height: 1.45; }
+    .lookup-gaps:empty { display: none; }
+    .lookup-gaps strong { color: #666; }
+
     /* ---- NEAR A PLACE ---- */
     .dist-col { display: none; }
     table.show-dist .dist-col { display: table-cell; }
@@ -779,7 +796,7 @@
 
       <div class="filter-section">
         <label class="filter-label" for="nearInput">Near a place</label>
-        <input type="text" class="filter-input" id="nearInput" list="placeList" placeholder="Zip, town, or community" autocomplete="off" enterkeyhint="search">
+        <input type="text" class="filter-input" id="nearInput" list="placeList" placeholder="Zip, city, or community" autocomplete="off" enterkeyhint="search">
         <datalist id="placeList"></datalist>
         <select class="filter-select" id="nearRadius">
           <option value="any">Any distance (closest first)</option>
@@ -791,7 +808,7 @@
           <option value="45">Within 45 miles</option>
           <option value="60">Within 60 miles</option>
         </select>
-        <p class="near-status" id="nearStatus">Straight-line miles from the center of that zip or town. Driving is usually a bit farther.</p>
+        <p class="near-status" id="nearStatus">Straight-line miles from the center of that zip or city. Driving is usually a bit farther.</p>
       </div>
 
       <div class="filter-section">
@@ -800,7 +817,7 @@
       </div>
 
       <div class="filter-section">
-        <label class="filter-label">Towns</label>
+        <label class="filter-label">Cities</label>
         <div class="community-list" id="townList"></div>
       </div>
 
@@ -808,6 +825,7 @@
         <label class="filter-label">Price</label>
         <input type="number" class="filter-input" id="minPrice" placeholder="Min">
         <input type="number" class="filter-input" id="maxPrice" placeholder="Max">
+        <label class="check-row" title="Homes under $100,000 in the system are placeholders, not real prices"><input type="checkbox" id="hideUnpriced"> Hide homes not priced yet</label>
       </div>
 
       <div class="filter-section">
@@ -856,6 +874,8 @@
           <strong id="avgPrice">$0</strong>
         </div>
       </div>
+
+      <div class="lookup-gaps" id="lookupGaps"></div>
     </div>
 
     <div class="main-content">
@@ -886,7 +906,7 @@
               <th data-column="Job">Lot #</th>
               <th data-column="HomeAddress">Address</th>
               <th data-column="Project">Community</th>
-              <th data-column="Town">Town</th>
+              <th data-column="Town">City</th>
               <th data-column="Distance" class="dist-col" title="Straight-line miles from the place in the Near filter. ≈ means approximate location.">Miles</th>
               <th data-column="Plan">Model</th>
               <th data-column="HomePrice">Price</th>
@@ -977,6 +997,7 @@
       "1418": "Pearson",
       "1419": "Pearson Rear Load",
       "1420": "Pearson",
+      "1421": "Navarro", // unofficial: the name plan 1421 uses in another DRH division
       "1461": "Maywood",
       "1462": "Newton",
       "1497": "Freeport",
@@ -1108,6 +1129,7 @@
       "North Gate": "https://www.drhorton.com/north-carolina/raleigh-durham/vass/north-gate",
       "Olive Branch": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/olive-branch",
       "Porters Landing": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/porters-landing",
+      "Porters Landing Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/the-townes-at-porters-landing",
       "Shahbain Reserve": "https://www.drhorton.com/north-carolina/raleigh-durham/raeford/shahbain-reserve",
       "South Pinehurst Cottages": "https://www.drhorton.com/north-carolina/raleigh-durham/pinehurst/south-pinehurst-cottages",
       "Swift Creek Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/swift-creek-farm",
@@ -1181,6 +1203,7 @@
       "North Gate": "Vass",
       "Olive Branch": "Wilson's Mills",
       "Porters Landing": "Wendell",
+      "Porters Landing Townes": "Wendell",
       "Shahbain Reserve": "Raeford",
       "South Pinehurst Cottages": "Pinehurst",
       "Swift Creek Farm": "Clayton",
@@ -1202,7 +1225,7 @@
 
     // ---------- Location data (offline) ----------
     // Community map points from each drhorton.com community page (collected 2026-09-28).
-    const COMMUNITY_GEO = {"Anderson Farm": [35.7971, -78.40417], "Baker Farm": [35.97635, -78.36578], "Barwell Park": [35.72816, -78.5533], "Battle Crossings": [35.72221, -78.53509], "Belle Grove SFA": [35.77304, -78.35198], "Belle Grove SFD": [35.77304, -78.35198], "Bexford - Single Family": [35.59669, -78.71735], "Bexford - Townes": [35.59669, -78.71735], "Bexford-Townes RL": [35.59669, -78.71735], "Carver Station": [36.0474, -78.88001], "Chapel Townes": [35.83892, -78.51648], "Collins Ridge 26' TH": [36.06057, -79.09613], "Collins Ridge 40'": [36.06056, -79.09616], "Collins Ridge 50'": [36.06056, -79.09616], "Collinswood - Freedom": [35.12468, -79.39577], "Collinswood - Traditions": [35.12561, -79.39391], "Copper Run South": [35.94345, -78.83438], "Cross Creek": [35.24685, -78.92798], "Eagle Creek": [35.53871, -78.78082], "Galvin's Ridge - DRHe": [35.56667, -79.15823], "Galvin's Ridge - THs": [35.56672, -79.15829], "Gretchen Pines": [35.25881, -79.54642], "Hawley Glen": [35.42915, -78.81221], "Haywood Glen PH4 35s": [35.82193, -78.46494], "Haywood Glen PH4 60s": [35.82188, -78.4649], "Honeycutt Oaks": [35.50259, -78.7525], "Honeycutt Oaks THs": [35.50259, -78.75251], "Horton Park 52s": [35.70182, -78.81966], "Horton Park 62s": [35.70179, -78.81961], "Kalas Falls - DRH": [35.89071, -78.44929], "Laurel Oaks": [35.42137, -79.12759], "Laurel Oaks - Freedom": [35.42153, -79.12766], "Laurel Oaks - THs": [35.42137, -79.12759], "Lawson Glen": [35.62639, -78.45053], "Madden West - SF": [35.58873, -78.81169], "Madden West THs": [35.58955, -78.81392], "Mangum Farms": [36.183, -78.74], "Manors at Winston Pointe": [35.64491, -78.50087], "Martin Farms": [35.14046, -79.46197], "Martin Farms Manors": [35.14284, -79.45819], "Martin Farms Townes": [35.14046, -79.46195], "Martin Farms Villas": [35.14261, -79.45818], "Mason Ridge": [35.27798, -78.98808], "Matthews Landing - 40' SFD": [35.47626, -78.81059], "Matthews Landing - 50' SFD": [35.47626, -78.81059], "Matthews Landing - THs": [35.47633, -78.81054], "Matthews Landing - THs RL": [35.47633, -78.81054], "North Gate": [35.19706, -79.18826], "Olive Branch": [35.58502, -78.41497], "Porters Landing": [35.77745, -78.39398], "Shahbain Reserve": [34.99364, -79.08551], "Swift Creek Farm": [35.57241, -78.4775], "The Grove at Winston Pointe": [35.64268, -78.50703], "The Landing at Winston Pointe": [35.64495, -78.501], "The Manors at Swift Creek Farm": [35.5724, -78.4774], "The Reserve at Prestleigh": [35.94497, -78.46204], "The Townes at Prestleigh": [35.94638, -78.46153], "The Villas at Galvin's Ridge": [35.57439, -79.15475], "Thornton Townes": [35.89825, -78.54511], "Townes at Anderson Farm": [35.7982, -78.40712], "Townes at Carver Station 20s": [36.04726, -78.87993], "Townes at Carver Station 22s": [36.04726, -78.87993], "Westerly": [35.42889, -78.81223], "Wilson's Ridge 20' THs": [35.5785, -78.35227], "Wilson's Ridge 50s": [35.5785, -78.35227], "Wilson's Ridge 60s": [35.5785, -78.35227]};
+    const COMMUNITY_GEO = {"Anderson Farm": [35.7971, -78.40417], "Baker Farm": [35.97635, -78.36578], "Barwell Park": [35.72816, -78.5533], "Battle Crossings": [35.72221, -78.53509], "Belle Grove SFA": [35.77304, -78.35198], "Belle Grove SFD": [35.77304, -78.35198], "Bexford - Single Family": [35.59669, -78.71735], "Bexford - Townes": [35.59669, -78.71735], "Bexford-Townes RL": [35.59669, -78.71735], "Carver Station": [36.0474, -78.88001], "Chapel Townes": [35.83892, -78.51648], "Collins Ridge 26' TH": [36.06057, -79.09613], "Collins Ridge 40'": [36.06056, -79.09616], "Collins Ridge 50'": [36.06056, -79.09616], "Collinswood - Freedom": [35.12468, -79.39577], "Collinswood - Traditions": [35.12561, -79.39391], "Copper Run South": [35.94345, -78.83438], "Cross Creek": [35.24685, -78.92798], "Eagle Creek": [35.53871, -78.78082], "Galvin's Ridge - DRHe": [35.56667, -79.15823], "Galvin's Ridge - THs": [35.56672, -79.15829], "Gretchen Pines": [35.25881, -79.54642], "Hawley Glen": [35.42915, -78.81221], "Haywood Glen PH4 35s": [35.82193, -78.46494], "Haywood Glen PH4 60s": [35.82188, -78.4649], "Honeycutt Oaks": [35.50259, -78.7525], "Honeycutt Oaks THs": [35.50259, -78.75251], "Horton Park 52s": [35.70182, -78.81966], "Horton Park 62s": [35.70179, -78.81961], "Kalas Falls - DRH": [35.89071, -78.44929], "Laurel Oaks": [35.42137, -79.12759], "Laurel Oaks - Freedom": [35.42153, -79.12766], "Laurel Oaks - THs": [35.42137, -79.12759], "Lawson Glen": [35.62639, -78.45053], "Madden West - SF": [35.58873, -78.81169], "Madden West THs": [35.58955, -78.81392], "Mangum Farms": [36.183, -78.74], "Manors at Winston Pointe": [35.64491, -78.50087], "Martin Farms": [35.14046, -79.46197], "Martin Farms Manors": [35.14284, -79.45819], "Martin Farms Townes": [35.14046, -79.46195], "Martin Farms Villas": [35.14261, -79.45818], "Mason Ridge": [35.27798, -78.98808], "Matthews Landing - 40' SFD": [35.47626, -78.81059], "Matthews Landing - 50' SFD": [35.47626, -78.81059], "Matthews Landing - THs": [35.47633, -78.81054], "Matthews Landing - THs RL": [35.47633, -78.81054], "North Gate": [35.19706, -79.18826], "Olive Branch": [35.58502, -78.41497], "Porters Landing": [35.77847, -78.39419], "Porters Landing Townes": [35.77847, -78.39419], "Shahbain Reserve": [34.99364, -79.08551], "Swift Creek Farm": [35.57241, -78.4775], "The Grove at Winston Pointe": [35.64268, -78.50703], "The Landing at Winston Pointe": [35.64495, -78.501], "The Manors at Swift Creek Farm": [35.5724, -78.4774], "The Reserve at Prestleigh": [35.94497, -78.46204], "The Townes at Prestleigh": [35.94638, -78.46153], "The Villas at Galvin's Ridge": [35.57439, -79.15475], "Thornton Townes": [35.89825, -78.54511], "Townes at Anderson Farm": [35.7982, -78.40712], "Townes at Carver Station 20s": [36.04726, -78.87993], "Townes at Carver Station 22s": [36.04726, -78.87993], "Westerly": [35.42889, -78.81223], "Wilson's Ridge 20' THs": [35.5785, -78.35227], "Wilson's Ridge 50s": [35.5785, -78.35227], "Wilson's Ridge 60s": [35.5785, -78.35227]};
     // No exact point published: Copper Run North placed at Copper Run South; South Pinehurst Cottages at its zip (28374) center.
     const COMMUNITY_GEO_APPROX = {"Copper Run North": [35.94345, -78.83438], "South Pinehurst Cottages": [35.1884, -79.4732]};
     // NC zip centers (zip,lat,lng) and town -> main zip. Source: public US zip code data.
@@ -1229,7 +1252,7 @@
         return p ? { label: 'zip ' + zipMatch[1], point: p } : { error: 'Only North Carolina zip codes are loaded.' };
       }
       let k = normPlace(raw).replace(/\s+(nc|north carolina)$/, '');
-      return PLACE_INDEX[k] || { error: 'Couldn\'t find “' + raw + '”. Try a 5-digit NC zip, an NC town, or a community name.' };
+      return PLACE_INDEX[k] || { error: 'Couldn\'t find “' + raw + '”. Try a 5-digit NC zip, an NC city, or a community name.' };
     }
 
     function milesBetween(a, b) {
@@ -1397,16 +1420,20 @@
     function computeChanges(prevRows, nextRows, prevStamp) {
       const prev = new Map(prevRows.map(i => [keyOf(i), i]));
       const next = new Map(nextRows.map(i => [keyOf(i), i]));
-      const added = [], gone = [], price = [];
+      const added = [], gone = [], price = [], newlyPriced = [];
       next.forEach((item, k) => {
         if (!prev.has(k)) added.push(k);
         else {
           const oldP = Number(prev.get(k).HomePrice) || 0, newP = Number(item.HomePrice) || 0;
-          if (oldP !== newP) price.push({ key: k, old: oldP, now: newP });
+          const oldReal = oldP >= MIN_REAL_PRICE, newReal = newP >= MIN_REAL_PRICE;
+          if (oldReal && newReal && oldP !== newP) price.push({ key: k, old: oldP, now: newP });
+          else if (!oldReal && newReal) newlyPriced.push({ key: k, now: newP });
+          else if (oldReal && !newReal) price.push({ key: k, old: oldP, now: newP, lost: true });
+          // placeholder -> placeholder moves are noise; ignored
         }
       });
       prev.forEach((item, k) => { if (!next.has(k)) gone.push(item); });
-      return { since: prevStamp, added, gone, price };
+      return { since: prevStamp, added, gone, price, newlyPriced };
     }
 
     function buildChangeIndex() {
@@ -1414,7 +1441,8 @@
       const ch = saved && saved.changes;
       if (!ch) return;
       ch.added.forEach(k => { changeIndex[k] = { type: 'new' }; });
-      ch.price.forEach(p => { changeIndex[p.key] = { type: 'price', old: p.old, now: p.now }; });
+      ch.price.forEach(p => { if (!p.lost) changeIndex[p.key] = { type: 'price', old: p.old, now: p.now }; });
+      (ch.newlyPriced || []).forEach(p => { changeIndex[p.key] = { type: 'newlyPriced' }; });
     }
 
     const changeBanner = document.getElementById('changeBanner');
@@ -1424,15 +1452,18 @@
       const byKey = new Map((saved.current.Inventory || []).map(i => [keyOf(i), i]));
       const parts = [];
       if (ch.added.length) parts.push(`${ch.added.length} new`);
+      const np = ch.newlyPriced || [];
+      if (np.length) parts.push(`${np.length} newly priced`);
       if (ch.price.length) parts.push(`${ch.price.length} price change${ch.price.length === 1 ? '' : 's'}`);
       if (ch.gone.length) parts.push(`${ch.gone.length} gone`);
       const since = 'Since ' + fmtStamp(ch.since);
       const summary = parts.length ? `${since}: <strong>${parts.join(' · ')}</strong>` : `${since}: no changes`;
       const line = (i, extra) => `<div class="change-item">Lot ${escapeHtml(String(i.Job || '—'))} · ${escapeHtml(i.HomeAddress || '')} · ${escapeHtml(i.Project || i.Community || '')}${extra ? ' · ' + extra : ''}</div>`;
       let details = '';
-      if (ch.added.length) details += `<div class="change-group"><div class="change-group-title">New</div>${ch.added.map(k => byKey.get(k)).filter(Boolean).map(i => line(i, fmtMoney(i.HomePrice))).join('')}</div>`;
-      if (ch.price.length) details += `<div class="change-group"><div class="change-group-title">Price changes</div>${ch.price.map(p => { const i = byKey.get(p.key); if (!i) return ''; const diff = p.now - p.old; return line(i, `${fmtMoney(p.old)} → ${fmtMoney(p.now)} (${diff < 0 ? '−' : '+'}${fmtMoney(Math.abs(diff))})`); }).join('')}</div>`;
-      if (ch.gone.length) details += `<div class="change-group"><div class="change-group-title">Gone (sold or pulled)</div>${ch.gone.map(i => line(i, 'was ' + fmtMoney(i.HomePrice))).join('')}</div>`;
+      if (ch.added.length) details += `<div class="change-group"><div class="change-group-title">New</div>${ch.added.map(k => byKey.get(k)).filter(Boolean).map(i => line(i, isPriced(i) ? fmtMoney(i.HomePrice) : 'not priced yet')).join('')}</div>`;
+      if (np.length) details += `<div class="change-group"><div class="change-group-title">Newly priced</div>${np.map(p => { const i = byKey.get(p.key); return i ? line(i, fmtMoney(p.now)) : ''; }).join('')}</div>`;
+      if (ch.price.length) details += `<div class="change-group"><div class="change-group-title">Price changes</div>${ch.price.map(p => { const i = byKey.get(p.key); if (!i) return ''; if (p.lost) return line(i, `${fmtMoney(p.old)} → not priced`); const diff = p.now - p.old; return line(i, `${fmtMoney(p.old)} → ${fmtMoney(p.now)} (${diff < 0 ? '−' : '+'}${fmtMoney(Math.abs(diff))})`); }).join('')}</div>`;
+      if (ch.gone.length) details += `<div class="change-group"><div class="change-group-title">Gone (sold or pulled)</div>${ch.gone.map(i => line(i, isPriced(i) ? 'was ' + fmtMoney(i.HomePrice) : 'was not priced')).join('')}</div>`;
       changeBanner.innerHTML = `
         <div class="change-banner-row">
           <span class="grow">${summary}</span>
@@ -1452,6 +1483,17 @@
       });
     }
 
+    // Names the page can't translate yet, so they can be added to the lookup lists.
+    function renderLookupGaps(communities) {
+      const el = document.getElementById('lookupGaps');
+      const comms = communities.filter(c => !communityTowns[c] || !(COMMUNITY_GEO[c] || COMMUNITY_GEO_APPROX[c]));
+      const plans = [...new Set(allInventory.map(i => String(i.Plan || '')).filter(p => p && !planToModel[p]))].sort();
+      const parts = [];
+      if (comms.length) parts.push(`<strong>Communities without a city or map spot:</strong> ${comms.map(escapeHtml).join(', ')}`);
+      if (plans.length) parts.push(`<strong>Plan codes without a model name:</strong> ${plans.map(escapeHtml).join(', ')}`);
+      el.innerHTML = parts.length ? 'Not in the lookup lists yet.<br>' + parts.join('<br>') : '';
+    }
+
     function showDataset(note) {
       allInventory = saved.current.Inventory;
       const uniqueCommunities = [...new Set(allInventory.map(item => item.Project || item.Community || ''))].filter(Boolean).sort();
@@ -1459,6 +1501,7 @@
       const uniqueTowns = [...new Set(uniqueCommunities.map(c => communityTowns[c] || ''))].filter(Boolean).sort();
       renderTownButtons(uniqueTowns);
       buildChangeIndex();
+      renderLookupGaps(uniqueCommunities);
       resultsInfo.textContent = `Loaded ${allInventory.length} properties` + (note ? ' · ' + note : '');
       updateFreshness();
       renderChangeBanner();
@@ -1554,7 +1597,7 @@
         const btn = document.createElement('button');
         btn.className = 'community-btn';
         btn.textContent = town;
-        btn.title = 'Click to filter by town';
+        btn.title = 'Click to filter by city';
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           toggleTown(town, btn);
@@ -1624,10 +1667,12 @@
 
     // Sort the filtered inventory
     function sortInventory() {
-      if (!currentSortColumn) return filteredInventory;
+      if (!currentSortColumn) return [...filteredInventory.filter(isPriced), ...filteredInventory.filter(i => !isPriced(i))];
 
       const sorted = [...filteredInventory];
       sorted.sort((a, b) => {
+        const ap = isPriced(a), bp = isPriced(b);
+        if (ap !== bp) return ap ? -1 : 1; // not-priced homes sink to the bottom either direction
         let aVal = a[currentSortColumn];
         let bVal = b[currentSortColumn];
 
@@ -1692,12 +1737,18 @@
       return loanAmt * (monthlyRate * factor) / (factor - 1);
     }
 
+    // Under this, the system price is a placeholder (unreleased home / lot premium), not a real price.
+    const MIN_REAL_PRICE = 100000;
+    function isPriced(item) { return (parseFloat(item.HomePrice) || 0) >= MIN_REAL_PRICE; }
+
     function computeStdPayment(item) {
+      if (!isPriced(item)) return null;
       return computeMonthlyPayment(item.HomePrice || 0, downPaymentPct.value, stdRate.value);
     }
 
     function computeBfcPayment(item) {
       if (bfcRate.value === '' || bfcRate.value === null || bfcRate.value === undefined) return null;
+      if (!isPriced(item)) return null;
       return computeMonthlyPayment(item.HomePrice || 0, downPaymentPct.value, bfcRate.value);
     }
 
@@ -1730,7 +1781,9 @@
         const itemMilestone = item.Milestone ? parseInt(item.Milestone) : 0;
 
         const matchesSearch = !search || address.includes(search) || lot.includes(search) || plan.includes(search) || modelName.includes(search);
-        const matchesPrice = price >= min && price <= max;
+        const priceFilterOn = !!(minPrice.value || maxPrice.value);
+        const matchesPrice = priceFilterOn ? (isPriced(item) && price >= min && price <= max) : true;
+        const matchesPriced = !hideUnpricedEl.checked || isPriced(item);
         const matchesBeds = beds >= minB && beds <= maxB;
         const matchesBaths = baths >= minBa && baths <= maxBa;
         const matchesMilestone = itemMilestone >= minM && itemMilestone <= maxM;
@@ -1743,7 +1796,7 @@
           matchesNear = d != null && d <= nearState.radius;
         }
 
-        return matchesSearch && matchesPrice && matchesBeds && matchesBaths && matchesMilestone && matchesCommunity && matchesTown && matchesNear;
+        return matchesSearch && matchesPrice && matchesPriced && matchesBeds && matchesBaths && matchesMilestone && matchesCommunity && matchesTown && matchesNear;
       });
 
       render();
@@ -1753,6 +1806,7 @@
       const c = changeIndex[keyOf(item)];
       if (!c) return '';
       if (where === 'lot' && c.type === 'new') return '<span class="tag tag-new">NEW</span>';
+      if (where === 'price' && c.type === 'newlyPriced') return '<span class="tag tag-priced">NEWLY PRICED</span>';
       if (where === 'price' && c.type === 'price') {
         const diff = c.now - c.old;
         return `<span class="tag ${diff < 0 ? 'tag-down' : 'tag-up'}" title="Was ${fmtMoney(c.old)}">${diff < 0 ? '▼' : '▲'} ${fmtMoney(Math.abs(diff))}</span>`;
@@ -1796,15 +1850,19 @@
           milestoneDisplay = `<span class="milestone-badge ${badgeClass}">${milestone}<span class="milestone-tooltip">${escapeHtml(milestoneStage)}</span></span>`;
         }
 
+        const priced = isPriced(item);
+        const priceCell = priced
+          ? `$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}${tagFor(item, 'price')}`
+          : `<span class="np-label" title="The system shows ${fmtMoney(price)}, which is a placeholder, not a real price">Not priced</span><span class="np-raw">system: ${fmtMoney(price)}</span>`;
         return `
-          <tr>
+          <tr class="${priced ? '' : 'unpriced'}">
             <td>${item.Job}${tagFor(item, 'lot')}</td>
             <td>${item.HomeAddress || ''}</td>
             <td><a href="${communityLink}" target="_blank" class="community-link" title="Visit community page">${community}</a></td>
             <td>${town}</td>
             <td class="dist-col">${distCell(item)}</td>
             <td>${modelName}</td>
-            <td>$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}${tagFor(item, 'price')}</td>
+            <td>${priceCell}</td>
             <td>${stdPaymentDisplay}</td>
             <td>${bfcPaymentDisplay}</td>
             <td>${item.Bed || ''}</td>
@@ -1815,7 +1873,8 @@
         `;
       }).join('');
 
-      const avgPriceValue = filteredInventory.reduce((sum, item) => sum + (item.HomePrice || 0), 0) / filteredInventory.length;
+      const pricedList = filteredInventory.filter(isPriced);
+      const avgPriceValue = pricedList.length ? pricedList.reduce((sum, item) => sum + (item.HomePrice || 0), 0) / pricedList.length : 0;
       resultCount.textContent = filteredInventory.length;
       avgPrice.textContent = '$' + avgPriceValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
@@ -1826,7 +1885,7 @@
         return;
       }
 
-      const headers = ['Lot #', 'Address', 'Community', 'Town', ...(nearState.place ? ['Miles from ' + nearState.place.label] : []), 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
+      const headers = ['Lot #', 'Address', 'Community', 'City', ...(nearState.place ? ['Miles from ' + nearState.place.label] : []), 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
       const sortedInventory = sortInventory();
 
       const rows = sortedInventory.map(item => {
@@ -1843,7 +1902,7 @@
           communityTowns[community] || '',
           ...(nearState.place ? [(() => { const d = distanceOf(item); return d == null ? '' : d.toFixed(1); })()] : []),
           modelName,
-          price,
+          isPriced(item) ? price : `Not priced (system: ${price})`,
           stdPayment != null ? Math.round(stdPayment) : '',
           bfcPayment != null ? Math.round(bfcPayment) : '',
           item.Bed || '',
@@ -1879,6 +1938,8 @@
     maxBaths.addEventListener('input', filter);
     minMilestone.addEventListener('input', filter);
     maxMilestone.addEventListener('input', filter);
+    const hideUnpricedEl = document.getElementById('hideUnpriced');
+    hideUnpricedEl.addEventListener('change', filter);
 
     // ---------- Summary strip ----------
     const insightsEl = document.getElementById('insights');
@@ -1926,8 +1987,11 @@
         `in ${comms.size} ${comms.size === 1 ? 'community' : 'communities'}${filtered ? ` · of ${total.toLocaleString('en-US')}` : ''}`));
 
       // Price
-      const prices = list.map(i => num(i.HomePrice)).filter(p => p > 0).sort(byNum);
-      if (prices.length) tiles.push(tile('Price range', range(prices, kMoney), 'Median ' + fmtMoney(median(prices))));
+      const prices = list.filter(isPriced).map(i => num(i.HomePrice)).sort(byNum);
+      const notPriced = list.length - prices.length;
+      const npNote = notPriced ? `${notPriced.toLocaleString('en-US')} not priced yet, left out` : '';
+      if (prices.length) tiles.push(tile('Price range', range(prices, kMoney), ['Median ' + fmtMoney(median(prices)), npNote].filter(Boolean).join('<br>')));
+      else tiles.push(tile('Price range', '—', 'None of these homes are priced yet'));
 
       // Payment
       const pays = list.map(computeStdPayment).filter(v => v != null).sort(byNum);
@@ -1946,13 +2010,13 @@
       tiles.push(`<div class="tile"><div class="tile-label">Build stage</div><div class="stage-row">
         <button class="stage-chip" data-min="9" data-max="" title="Show only these"><span class="dot late"></span><strong>${late}</strong><span>near finish (9+)</span></button>
         <button class="stage-chip" data-min="5" data-max="8" title="Show only these"><span class="dot mid"></span><strong>${mid}</strong><span>mid-build (5–8)</span></button>
-        <button class="stage-chip" data-min="" data-max="4" title="Show only these"><span class="dot early"></span><strong>${early}</strong><span>early (0–4)</span></button>
+        <button class="stage-chip" data-min="" data-max="4" title="Show only these"><span class="dot early"></span><strong>${early}</strong><span>early / not started (0–4)</span></button>
       </div></div>`);
 
       // Size & value
       const sq = list.map(i => num(i.Sqft)).filter(s => s > 0).sort(byNum);
       const beds = list.map(i => num(i.Bed)).filter(b => b > 0).sort(byNum);
-      const withBoth = list.filter(i => num(i.HomePrice) > 0 && num(i.Sqft) > 0);
+      const withBoth = list.filter(i => isPriced(i) && num(i.Sqft) > 0);
       if (sq.length) {
         const ppsf = withBoth.length ? withBoth.reduce((s, i) => s + num(i.HomePrice), 0) / withBoth.reduce((s, i) => s + num(i.Sqft), 0) : null;
         const bedTxt = beds.length ? range(beds, b => String(b)) + ' beds' : '';
@@ -1961,7 +2025,7 @@
       }
 
       // Lowest price home
-      const cheapest = list.filter(i => num(i.HomePrice) > 0).sort((a, b) => num(a.HomePrice) - num(b.HomePrice))[0];
+      const cheapest = list.filter(isPriced).sort((a, b) => num(a.HomePrice) - num(b.HomePrice))[0];
       if (cheapest) tiles.push(tile('Lowest price', fmtMoney(cheapest.HomePrice),
         `Lot ${escapeHtml(String(cheapest.Job || '—'))} · ${escapeHtml(cheapest.Project || cheapest.Community || '')}`));
 
@@ -2056,6 +2120,7 @@
       selectedCommunities.clear();
       selectedTowns.clear();
       document.querySelectorAll('.community-btn').forEach(btn => btn.classList.remove('active'));
+      hideUnpricedEl.checked = false;
       nearInput.value = '';
       nearRadius.value = '30';
       updateNear();
