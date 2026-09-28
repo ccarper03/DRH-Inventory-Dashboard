@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRH Inventory (Test)</title>
+  <meta name="theme-color" content="#0066cc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="DRH Test">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; width: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      overflow: hidden;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+      gap: 0;
+    }
+
+    /* SIDEBAR FILTERS */
+    .sidebar {
+      background: white;
+      border-right: 1px solid #ddd;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 4px;
+    }
+
+    .filter-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-input, .filter-select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .filter-input:focus, .filter-select:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    .filter-hint {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: #555;
+      font-weight: 500;
+      margin-bottom: -3px;
+    }
+
+    .community-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .community-btn {
+      padding: 8px 10px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      color: #444;
+    }
+
+    .community-btn:hover {
+      background: #f0f8ff;
+      border-color: #0066cc;
+    }
+
+    .community-btn.active {
+      background: #0066cc;
+      color: white;
+      border-color: #0066cc;
+      font-weight: 600;
+    }
+
+    .community-btn-info {
+      font-size: 11px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .stats-box {
+      background: #f0f8ff;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #cce5ff;
+      font-size: 12px;
+      color: #333;
+      margin-top: auto;
+    }
+
+    .stats-box-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .stats-box-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .clear-btn {
+      padding: 8px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      background: #e0e0e0;
+      border-color: #999;
+    }
+
+    /* MAIN CONTENT */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      background: #f5f5f5;
+      overflow: hidden;
+    }
+
+    .header {
+      background: white;
+      padding: 12px 16px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    .load-btn {
+      padding: 8px 12px;
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .load-btn:hover {
+      background: #0052a3;
+    }
+
+    .results-info {
+      background: white;
+      padding: 8px 16px;
+      border-bottom: 1px solid #ddd;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .table-wrapper {
+      flex: 1;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 14px;
+    }
+
+    thead {
+      background: #f9f9f9;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      font-size: 13px;
+    }
+
+    th:hover {
+      background: #f0f0f0;
+    }
+
+    th.sorted-asc::after {
+      content: ' ↑';
+      font-size: 11px;
+    }
+
+    th.sorted-desc::after {
+      content: ' ↓';
+      font-size: 11px;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      color: #333;
+      font-size: 13px;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    .community-link {
+      cursor: pointer;
+      color: #0066cc;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .community-link:hover {
+      text-decoration: underline;
+    }
+
+    .milestone-badge {
+      display: inline-block;
+      cursor: help;
+      color: #0066cc;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #f0f8ff;
+      border: 1px solid #cce5ff;
+      position: relative;
+      user-select: none;
+    }
+
+    .milestone-badge:hover {
+      background: #e6f2ff;
+      border-color: #99ccff;
+    }
+
+    .milestone-badge.presale {
+      color: #6b4423;
+      background: #e8d5c4;
+      border: 1px solid #d4c4b0;
+    }
+
+    .milestone-badge.presale:hover {
+      background: #dcc5b0;
+      border-color: #c8b499;
+    }
+
+    .milestone-badge.closing-soon {
+      color: #155724;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+    }
+
+    .milestone-badge.closing-soon:hover {
+      background: #c3e6cb;
+      border-color: #b1dfbb;
+    }
+
+    .milestone-tooltip {
+      visibility: hidden;
+      width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 6px;
+      position: absolute;
+      z-index: 100;
+      right: 100%;
+      top: 50%;
+      margin-right: 8px;
+      margin-top: -20px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      font-size: 12px;
+      font-weight: normal;
+      white-space: normal;
+      line-height: 1.4;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .milestone-tooltip::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      margin-top: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent #333 transparent transparent;
+    }
+
+    .milestone-badge:hover .milestone-tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .status-available {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-sold {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    /* HAMBURGER MENU */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #333;
+    }
+
+    /* MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.2s;
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      max-width: 700px;
+      max-height: 85vh;
+      overflow-y: auto;
+      width: 90%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      color: #333;
+    }
+
+    .modal-section {
+      margin-bottom: 24px;
+    }
+
+    .modal-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .modal-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0066cc;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .modal-section-content {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #555;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .modal-link {
+      color: #0066cc;
+      text-decoration: none;
+      word-break: break-all;
+      font-size: 13px;
+    }
+
+    .modal-link:hover {
+      text-decoration: underline;
+    }
+
+    /* SCRIPT MODAL */
+    .script-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.2s;
+    }
+
+    .script-modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .script-modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      max-width: 800px;
+      max-height: 85vh;
+      overflow-y: auto;
+      width: 90%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .script-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 12px;
+    }
+
+    .script-modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    .script-modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .script-modal-close:hover {
+      color: #333;
+    }
+
+    .script-code {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #333;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .copy-btn {
+      padding: 10px 16px;
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .copy-btn:hover {
+      background: #0052a3;
+    }
+
+    .script-instructions {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .script-instructions ol {
+      margin-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    .script-instructions li {
+      margin-bottom: 8px;
+    }
+
+    /* ---- TEST BUILD ADDITIONS ---- */
+    .test-badge {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.8px;
+      color: #fff; background: #ff8c00; padding: 2px 6px; border-radius: 4px;
+    }
+    .fresh-pill {
+      font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid transparent; white-space: nowrap;
+    }
+    .fresh-pill.fresh-none { color: #666; background: #f0f0f0; border-color: #ddd; }
+    .fresh-pill.fresh-ok   { color: #155724; background: #d4edda; border-color: #c3e6cb; }
+    .fresh-pill.fresh-warn { color: #856404; background: #fff3cd; border-color: #ffe08a; }
+    .fresh-pill.fresh-old  { color: #721c24; background: #f8d7da; border-color: #f1b0b7; }
+
+    .change-banner {
+      display: none; background: #eef6ff; border-bottom: 1px solid #cce5ff;
+      padding: 8px 16px; font-size: 13px; color: #1d3b5c;
+    }
+    .change-banner.show { display: block; }
+    .change-banner-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .change-banner-row .grow { flex: 1; min-width: 180px; }
+    .link-btn {
+      background: none; border: none; color: #0066cc; font-weight: 600;
+      cursor: pointer; font-size: 13px; padding: 4px 2px;
+    }
+    .change-details { display: none; margin-top: 8px; max-height: 40vh; overflow-y: auto; }
+    .change-details.show { display: block; }
+    .change-group { margin-bottom: 8px; }
+    .change-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #555; margin-bottom: 4px; }
+    .change-item { font-size: 12px; padding: 3px 0; border-bottom: 1px dashed #d6e6f7; color: #333; }
+
+    .tag {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 5px;
+      border-radius: 3px; margin-left: 6px; vertical-align: middle; white-space: nowrap;
+    }
+    .tag-new  { background: #0066cc; color: #fff; }
+    .tag-down { background: #d4edda; color: #155724; }
+    .tag-up   { background: #fff3cd; color: #856404; }
+
+    .bm-button {
+      display: inline-block; padding: 10px 16px; background: #ff8c00; color: #fff !important;
+      border-radius: 6px; font-weight: 700; font-size: 14px; text-decoration: none;
+      cursor: grab; border: 2px dashed rgba(255,255,255,0.7); margin: 6px 0 4px;
+    }
+    .step-box { background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
+    .step-title { font-size: 13px; font-weight: 700; color: #0066cc; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .step-box p { margin-bottom: 8px; }
+    .small-note { font-size: 12px; color: #777; }
+    .secondary-btn {
+      padding: 6px 10px; background: #fff; border: 1px solid #ccc; border-radius: 6px;
+      cursor: pointer; font-size: 12px; font-weight: 600; color: #333;
+    }
+    details.fallback summary { cursor: pointer; font-weight: 600; color: #555; font-size: 13px; margin-bottom: 10px; }
+    .danger-btn {
+      padding: 8px; background: #fff; border: 1px solid #f1b0b7; border-radius: 6px;
+      cursor: pointer; font-size: 12px; font-weight: 600; color: #a12634;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 280px;
+        height: 100vh;
+        z-index: 999;
+        display: none;
+        flex-direction: column;
+        border-right: 1px solid #ddd;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar.show {
+        display: flex;
+      }
+
+      .hamburger {
+        display: block;
+      }
+
+      .header-left { flex-wrap: wrap; row-gap: 6px; min-width: 0; }
+      .fresh-pill { white-space: normal; }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px 12px;
+      }
+
+      .header {
+        padding: 12px 16px;
+      }
+
+      .header-title {
+        font-size: 16px;
+      }
+
+      .modal-content {
+        max-width: 95%;
+        max-height: 90vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-title">Filters</div>
+
+      <div class="filter-section">
+        <label class="filter-label">Search</label>
+        <input type="text" class="filter-input" id="searchInput" placeholder="Address, lot, plan...">
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Communities</label>
+        <div class="community-list" id="communityList"></div>
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Towns</label>
+        <div class="community-list" id="townList"></div>
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Price</label>
+        <input type="number" class="filter-input" id="minPrice" placeholder="Min">
+        <input type="number" class="filter-input" id="maxPrice" placeholder="Max">
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Bedrooms</label>
+        <input type="number" class="filter-input" id="minBeds" placeholder="Min" min="0" step="1">
+        <input type="number" class="filter-input" id="maxBeds" placeholder="Max" min="0" step="1">
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Bathrooms</label>
+        <input type="number" class="filter-input" id="minBaths" placeholder="Min" min="0" step="0.5">
+        <input type="number" class="filter-input" id="maxBaths" placeholder="Max" min="0" step="0.5">
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Milestone</label>
+        <input type="number" class="filter-input" id="minMilestone" placeholder="Min" min="0" step="1">
+        <input type="number" class="filter-input" id="maxMilestone" placeholder="Max" min="0" step="1">
+      </div>
+
+      <div class="filter-section">
+        <label class="filter-label">Financing (Est. Payment)</label>
+        <p class="filter-hint">Estimates a 30-yr conventional monthly payment for every home using the inputs below. Adjust and the Payment column updates automatically.</p>
+
+        <label class="field-label">Down Payment %</label>
+        <input type="number" class="filter-input" id="downPaymentPct" placeholder="Down %" min="0" max="100" step="0.5" value="5" title="Down payment as a percent of the home price, e.g. 5 = 5% down">
+
+        <label class="field-label">Standard Rate %</label>
+        <input type="number" class="filter-input" id="stdRate" placeholder="Standard Rate %" min="0" max="20" step="0.001" value="6.647" title="Interest rate used to calculate the Payment column">
+
+        <label class="field-label">BFC Rate % (optional)</label>
+        <input type="number" class="filter-input" id="bfcRate" placeholder="BFC Rate % (optional)" min="0" max="20" step="0.001" title="Builder Forward Commitment rate. Enter a rate to add a Payment (BFC) column so you can compare it against the standard rate. Leave blank to hide that column.">
+        <p class="filter-hint">Leave BFC Rate blank to hide the Payment (BFC) column. Fill it in to compare against the standard-rate payment.</p>
+      </div>
+
+      <button class="clear-btn" id="clearFiltersBtn">Clear Filters</button>
+      <button class="danger-btn" id="clearSavedBtn" title="Removes the saved inventory from this device only">Clear saved data on this device</button>
+
+      <div class="stats-box">
+        <div class="stats-box-row">
+          <span>Results:</span>
+          <strong id="resultCount">0</strong>
+        </div>
+        <div class="stats-box-row">
+          <span>Avg Price:</span>
+          <strong id="avgPrice">$0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="header">
+        <div class="header-left">
+          <button class="hamburger" id="hamburger">☰</button>
+          <div class="header-title">Inventory</div>
+          <span class="test-badge" title="Test copy. The official dashboard is unchanged.">TEST</span>
+          <span class="fresh-pill fresh-none" id="freshPill">No data yet</span>
+        </div>
+        <div class="header-buttons">
+          <button class="load-btn" id="pullDataBtn">Pull Data</button>
+          <label style="cursor: pointer;">
+            <input type="file" id="jsonFile" accept=".json,application/json" style="display: none;">
+            <span class="load-btn">Load JSON</span>
+          </label>
+          <button class="load-btn" id="exportBtn">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="results-info" id="resultsInfo">Ready to load inventory data...</div>
+      <div class="change-banner" id="changeBanner"></div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th data-column="Job">Lot #</th>
+              <th data-column="HomeAddress">Address</th>
+              <th data-column="Project">Community</th>
+              <th data-column="Town">Town</th>
+              <th data-column="Plan">Model</th>
+              <th data-column="HomePrice">Price</th>
+              <th data-column="MonthlyPayment" title="Estimated monthly payment at the Standard Rate set in the Financing filter (sidebar)">Payment</th>
+              <th data-column="BFCPayment" title="Estimated monthly payment at the BFC Rate set in the Financing filter (sidebar). Blank if no BFC Rate is entered">Payment (BFC)</th>
+              <th data-column="Bed">Beds</th>
+              <th data-column="Bath">Baths</th>
+              <th data-column="Sqft">Sqft</th>
+              <th data-column="Milestone">Milestone</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="12" style="text-align: center; color: #999;">No data loaded yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT MODAL -->
+  <div class="script-modal" id="scriptModal">
+    <div class="script-modal-content">
+      <div class="script-modal-header">
+        <div class="script-modal-title">Get fresh inventory</div>
+        <button class="script-modal-close" id="scriptModalClose">&times;</button>
+      </div>
+      <div class="script-instructions">
+        <div class="step-box">
+          <div class="step-title">1 &middot; Work computer, once a day</div>
+          <p><strong>One-time setup:</strong> show your bookmarks bar (Ctrl+Shift+B, or Cmd+Shift+B on a Mac), then drag this orange button onto it:</p>
+          <a class="bm-button" id="bmLink" href="#" title="Drag me to your bookmarks bar">&#128229; Get DRH Inventory</a>
+          <p class="small-note">Can't drag it? <button class="secondary-btn" id="copyBmBtn">Copy bookmark code</button> then right-click the bookmarks bar &rarr; Add page&hellip; and paste it as the URL.</p>
+          <p><strong>Each morning:</strong> open <a href="https://homesales.drhorton.com/" target="_blank" style="color: #0066cc;">homesales</a>, log in, click <strong>Get DRH Inventory</strong>. A file named <code>drh-inventory-DATE-TIME.json</code> downloads.</p>
+          <p>Send that file to your work email or work OneDrive so you can open it on your phone.</p>
+        </div>
+        <div class="step-box">
+          <div class="step-title">2 &middot; Phone or any device</div>
+          <p>Tap <strong>Load JSON</strong> and pick the newest file. It stays loaded on this device until you load a newer one, including with no signal.</p>
+          <p class="small-note"><strong>iPhone home screen:</strong> in Safari, Share &rarr; Add to Home Screen. Open it from the icon and load the file <em>there</em>. The icon keeps its own copy, separate from Safari.</p>
+        </div>
+        <details class="fallback">
+          <summary>Bookmark blocked? Use the console instead</summary>
+          <ol>
+            <li>On homesales, open Developer Tools (F12 or Cmd+Option+I) &rarr; Console</li>
+            <li>Paste the script below and press Enter</li>
+          </ol>
+          <button class="copy-btn" id="copyScriptBtn">&#128203; Copy Script</button>
+          <div class="script-code" id="scriptCode"></div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal" id="communityModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Community Details</div>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // Milestone stage definitions
+    const milestoneStages = {
+      "": "Not Started/Permit/Planning",
+      "0": "Not Started/Permit/Planning",
+      "1": "Foundation Layout/Trench",
+      "2": "Foundation Poured",
+      "3": "Frame",
+      "4": "Exterior Finish",
+      "5": "Mechanical Rough In",
+      "6": "Insulation/Dry wall",
+      "7": "Interior Finish",
+      "8": "Mechanical Finals",
+      "9": "Flooring Final Touches",
+      "10": "Final Inspection",
+      "11": "Certificate of Occupancy Received",
+      "12": "Quality Control Walk",
+      "13": "Buyer Walk-Through"
+    };
+
+    // Plan Code to Model Name lookup
+    const planToModel = {
+      "1381": "Altamont",
+      "1418": "Pearson",
+      "1419": "Pearson Rear Load",
+      "1420": "Pearson",
+      "1461": "Maywood",
+      "1462": "Newton",
+      "1497": "Freeport",
+      "1498": "Freeport",
+      "1510": "Jonathan",
+      "1554": "Mitchell",
+      "1564": "Denver",
+      "1566": "Sydney",
+      "1582": "Beckett",
+      "1613": "Taylor",
+      "1615": "Payton",
+      "1620": "Aria",
+      "1658": "Pattison",
+      "1673": "Bristol",
+      "1698": "Lansing",
+      "1749": "Darwin",
+      "1750": "Darwin",
+      "1760": "Carson",
+      "1764": "Cali",
+      "1765": "Cali",
+      "1797": "Clifton",
+      "1821": "Haywood",
+      "1823": "Collin",
+      "1825": "Blake",
+      "1878": "Sophie",
+      "1883": "Dover",
+      "1892": "Booth",
+      "1900": "Azalea",
+      "1906": "Aberdeen",
+      "1991": "Belhaven",
+      "1992": "Belhaven",
+      "1998": "Blakley",
+      "2057": "Walden",
+      "2147": "Ellis",
+      "2163": "Penwell",
+      "2164": "Penwell",
+      "2174": "Elston",
+      "2203": "Manning",
+      "2222": "Spencer",
+      "2283": "Hadleigh",
+      "2290": "Kathryn",
+      "2315": "Stella",
+      "2340": "Galen",
+      "2341": "Galen",
+      "2361": "Robie",
+      "2363": "Robie",
+      "2396": "Sierra",
+      "2459": "Cooper",
+      "2511": "Hayden",
+      "2512": "Hayden",
+      "2531": "Alec",
+      "2532": "Alec",
+      "2561": "Fleetwood",
+      "2585": "Landon",
+      "2628": "Calhoun",
+      "2629": "Calhoun",
+      "2638": "Jackson",
+      "2639": "Jackson",
+      "2651": "Edisto",
+      "2792": "Lucas",
+      "2800": "Wilmington",
+      "2804": "Hanover",
+      "2896": "Lawson",
+      "2922": "Summit",
+      "2961": "Olivia",
+      "3081": "Morgan",
+      "3112": "Hartwell",
+      "3123": "Hampshire",
+      "3133": "Jordan",
+      "3142": "Columbia",
+      "3262": "Norman",
+      "3396": "Tillery",
+      "3475": "Bennett"
+    };
+
+    // Community landing page links - verified real DR Horton community pages (researched 2026-08-18)
+    // Format: https://www.drhorton.com/north-carolina/{market}/{city}/{community-slug}
+    // A few communities share one marketing page for multiple lot-width/phase variants (DRH consolidates those on-site
+    // even though the sales system tracks them as separate project codes) - noted inline where that's the case.
+    const communityLinks = {
+      "Anderson Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/anderson-farm",
+      "Baker Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/youngsville/baker-farm",
+      "Barwell Park": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/barwell-park",
+      "Battle Crossings": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/battle-crossings",
+      "Belle Grove SFA": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/the-townes-at-belle-grove",
+      "Belle Grove SFD": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/belle-grove",
+      "Bexford - Single Family": "https://www.drhorton.com/north-carolina/raleigh-durham/willow-spring/bexford",
+      "Bexford - Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/willow-spring/the-townes-at-bexford",
+      "Bexford-Townes RL": "https://www.drhorton.com/north-carolina/raleigh-durham/willow-spring/the-townes-at-bexford",
+      "Carver Station": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/carver-station",
+      "Chapel Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/chapel-townes",
+      "Collins Ridge 26' TH": "https://www.drhorton.com/north-carolina/raleigh-durham/hillsborough/collins-ridge-townes",
+      "Collins Ridge 40'": "https://www.drhorton.com/north-carolina/raleigh-durham/hillsborough/collins-ridge",
+      "Collins Ridge 50'": "https://www.drhorton.com/north-carolina/raleigh-durham/hillsborough/collins-ridge",
+      "Collinswood - Freedom": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-villas-at-collinswood",
+      "Collinswood - Traditions": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/collinswood",
+      "Copper Run North": "https://www.drhorton.com/north-carolina/raleigh-durham",
+      "Copper Run South": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/copper-run-south",
+      "Cross Creek": "https://www.drhorton.com/north-carolina/fayetteville/spring-lake/cross-creek",
+      "Eagle Creek": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/eagle-creek",
+      "Galvin's Ridge - DRHe": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/galvins-ridge",
+      "Galvin's Ridge - THs": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-townes-at-galvins-ridge",
+      "Gretchen Pines": "https://www.drhorton.com/north-carolina/raleigh-durham/west-end/gretchen-pines",
+      "Hawley Glen": "https://www.drhorton.com/north-carolina/raleigh-durham/lillington/hawley-glen",
+      "Haywood Glen PH4 35s": "https://www.drhorton.com/north-carolina/raleigh-durham/knightdale/the-villas-at-haywood-glen",
+      "Haywood Glen PH4 60s": "https://www.drhorton.com/north-carolina/raleigh-durham/knightdale/the-manors-at-haywood-glen",
+      "Honeycutt Oaks": "https://www.drhorton.com/north-carolina/raleigh-durham/angier/honeycutt-oaks",
+      "Honeycutt Oaks THs": "https://www.drhorton.com/north-carolina/raleigh-durham/angier/the-townes-at-honeycutt-oaks",
+      "Horton Park 52s": "https://www.drhorton.com/north-carolina/raleigh-durham/apex/horton-park",
+      "Horton Park 62s": "https://www.drhorton.com/north-carolina/raleigh-durham/apex/the-estates-at-horton-park",
+      "Kalas Falls - DRH": "https://www.drhorton.com/north-carolina/raleigh-durham/wake-forest/kalas-falls",
+      "Laurel Oaks": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/laurel-oaks",
+      "Laurel Oaks - Freedom": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-villas-at-laurel-oaks",
+      "Laurel Oaks - THs": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-townes-at-laurel-oaks",
+      "Lawson Glen": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/lawson-glen",
+      "Madden West - SF": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/madden-west",
+      "Madden West THs": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-townes-at-madden-west",
+      "Mangum Farms": "https://www.drhorton.com/north-carolina/raleigh-durham/stem/mangum-farms",
+      "Manors at Winston Pointe": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-manors-at-winston-pointe",
+      "Martin Farms": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/martin-farms",
+      "Martin Farms Manors": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-manors-at-martin-farms",
+      "Martin Farms Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-townes-at-martin-farms",
+      "Martin Farms Villas": "https://www.drhorton.com/north-carolina/raleigh-durham/aberdeen/the-villas-at-martin-farms",
+      "Mason Ridge": "https://www.drhorton.com/north-carolina/fayetteville/spring-lake/mason-ridge",
+      "Matthews Landing - 40' SFD": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-grove-at-matthews-landing",
+      "Matthews Landing - 50' SFD": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-grove-at-matthews-landing",
+      "Matthews Landing - THs": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-townes-at-matthews-landing",
+      "Matthews Landing - THs RL": "https://www.drhorton.com/north-carolina/raleigh-durham/fuquay-varina/the-townes-at-matthews-landing",
+      "North Gate": "https://www.drhorton.com/north-carolina/raleigh-durham/vass/north-gate",
+      "Olive Branch": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/olive-branch",
+      "Porters Landing": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/porters-landing",
+      "Shahbain Reserve": "https://www.drhorton.com/north-carolina/raleigh-durham/raeford/shahbain-reserve",
+      "South Pinehurst Cottages": "https://www.drhorton.com/north-carolina/raleigh-durham/pinehurst/south-pinehurst-cottages",
+      "Swift Creek Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/swift-creek-farm",
+      "The Grove at Winston Pointe": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-grove-at-winston-pointe",
+      "The Landing at Winston Pointe": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-landing-at-winston-pointe",
+      "The Manors at Swift Creek Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/clayton/the-manors-at-swift-creek-farm",
+      "The Reserve at Prestleigh": "https://www.drhorton.com/north-carolina/raleigh-durham/wake-forest/the-reserve-at-prestleigh",
+      "The Townes at Prestleigh": "https://www.drhorton.com/north-carolina/raleigh-durham/wake-forest/the-townes-at-prestleigh",
+      "The Villas at Galvin's Ridge": "https://www.drhorton.com/north-carolina/raleigh-durham/sanford/the-villas-at-galvins-ridge",
+      "Thornton Townes": "https://www.drhorton.com/north-carolina/raleigh-durham/raleigh/thornton-townes",
+      "Townes at Anderson Farm": "https://www.drhorton.com/north-carolina/raleigh-durham/wendell/the-townes-at-anderson-farm",
+      "Townes at Carver Station 20s": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/the-townes-at-carver-station",
+      "Townes at Carver Station 22s": "https://www.drhorton.com/north-carolina/raleigh-durham/durham/the-townes-at-carver-station",
+      "Westerly": "https://www.drhorton.com/north-carolina/raleigh-durham/lillington/westerly",
+      "Wilson's Ridge 20' THs": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/the-townes-at-wilsons-ridge",
+      "Wilson's Ridge 50s": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/wilsons-ridge",
+      "Wilson's Ridge 60s": "https://www.drhorton.com/north-carolina/raleigh-durham/wilsons-mills/wilsons-ridge"
+    };
+
+    // Town each community is located in - derived from the verified community page URLs above (researched 2026-08-18).
+    // Copper Run North has no live page yet; town is inferred from Copper Run South (same immediate area) and unconfirmed.
+    const communityTowns = {
+      "Anderson Farm": "Wendell",
+      "Baker Farm": "Youngsville",
+      "Barwell Park": "Raleigh",
+      "Battle Crossings": "Raleigh",
+      "Belle Grove SFA": "Wendell",
+      "Belle Grove SFD": "Wendell",
+      "Bexford - Single Family": "Willow Spring",
+      "Bexford - Townes": "Willow Spring",
+      "Bexford-Townes RL": "Willow Spring",
+      "Carver Station": "Durham",
+      "Chapel Townes": "Raleigh",
+      "Collins Ridge 26' TH": "Hillsborough",
+      "Collins Ridge 40'": "Hillsborough",
+      "Collins Ridge 50'": "Hillsborough",
+      "Collinswood - Freedom": "Aberdeen",
+      "Collinswood - Traditions": "Aberdeen",
+      "Copper Run North": "Durham", // unconfirmed - inferred from Copper Run South
+      "Copper Run South": "Durham",
+      "Cross Creek": "Spring Lake",
+      "Eagle Creek": "Fuquay-Varina",
+      "Galvin's Ridge - DRHe": "Sanford",
+      "Galvin's Ridge - THs": "Sanford",
+      "Gretchen Pines": "West End",
+      "Hawley Glen": "Lillington",
+      "Haywood Glen PH4 35s": "Knightdale",
+      "Haywood Glen PH4 60s": "Knightdale",
+      "Honeycutt Oaks": "Angier",
+      "Honeycutt Oaks THs": "Angier",
+      "Horton Park 52s": "Apex",
+      "Horton Park 62s": "Apex",
+      "Kalas Falls - DRH": "Wake Forest",
+      "Laurel Oaks": "Sanford",
+      "Laurel Oaks - Freedom": "Sanford",
+      "Laurel Oaks - THs": "Sanford",
+      "Lawson Glen": "Clayton",
+      "Madden West - SF": "Fuquay-Varina",
+      "Madden West THs": "Fuquay-Varina",
+      "Mangum Farms": "Stem",
+      "Manors at Winston Pointe": "Clayton",
+      "Martin Farms": "Aberdeen",
+      "Martin Farms Manors": "Aberdeen",
+      "Martin Farms Townes": "Aberdeen",
+      "Martin Farms Villas": "Aberdeen",
+      "Mason Ridge": "Spring Lake",
+      "Matthews Landing - 40' SFD": "Fuquay-Varina",
+      "Matthews Landing - 50' SFD": "Fuquay-Varina",
+      "Matthews Landing - THs": "Fuquay-Varina",
+      "Matthews Landing - THs RL": "Fuquay-Varina",
+      "North Gate": "Vass",
+      "Olive Branch": "Wilson's Mills",
+      "Porters Landing": "Wendell",
+      "Shahbain Reserve": "Raeford",
+      "South Pinehurst Cottages": "Pinehurst",
+      "Swift Creek Farm": "Clayton",
+      "The Grove at Winston Pointe": "Clayton",
+      "The Landing at Winston Pointe": "Clayton",
+      "The Manors at Swift Creek Farm": "Clayton",
+      "The Reserve at Prestleigh": "Wake Forest",
+      "The Townes at Prestleigh": "Wake Forest",
+      "The Villas at Galvin's Ridge": "Sanford",
+      "Thornton Townes": "Raleigh",
+      "Townes at Anderson Farm": "Wendell",
+      "Townes at Carver Station 20s": "Durham",
+      "Townes at Carver Station 22s": "Durham",
+      "Westerly": "Lillington",
+      "Wilson's Ridge 20' THs": "Wilson's Mills",
+      "Wilson's Ridge 50s": "Wilson's Mills",
+      "Wilson's Ridge 60s": "Wilson's Mills"
+    };
+
+    // Community metadata
+    const communityData = {};
+
+    let allInventory = [];
+    let filteredInventory = [];
+    let selectedCommunities = new Set();
+    let selectedTowns = new Set();
+
+    const jsonFile = document.getElementById('jsonFile');
+    const tableBody = document.getElementById('tableBody');
+    const communityList = document.getElementById('communityList');
+    const townList = document.getElementById('townList');
+    const searchInput = document.getElementById('searchInput');
+    const minPrice = document.getElementById('minPrice');
+    const maxPrice = document.getElementById('maxPrice');
+    const minBeds = document.getElementById('minBeds');
+    const maxBeds = document.getElementById('maxBeds');
+    const minBaths = document.getElementById('minBaths');
+    const maxBaths = document.getElementById('maxBaths');
+    const minMilestone = document.getElementById('minMilestone');
+    const maxMilestone = document.getElementById('maxMilestone');
+    const downPaymentPct = document.getElementById('downPaymentPct');
+    const stdRate = document.getElementById('stdRate');
+    const bfcRate = document.getElementById('bfcRate');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    const resultCount = document.getElementById('resultCount');
+    const avgPrice = document.getElementById('avgPrice');
+    const resultsInfo = document.getElementById('resultsInfo');
+    const hamburger = document.getElementById('hamburger');
+    const sidebar = document.getElementById('sidebar');
+    const modal = document.getElementById('communityModal');
+    const modalClose = document.getElementById('modalClose');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const pullDataBtn = document.getElementById('pullDataBtn');
+    const scriptModal = document.getElementById('scriptModal');
+    const scriptModalClose = document.getElementById('scriptModalClose');
+    const copyScriptBtn = document.getElementById('copyScriptBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    // ---------- Pull script (single source for bookmark + console) ----------
+    const PULL_SRC = `(function(){var H='homesales.drhorton.com';if(location.hostname!==H){alert('Open '+H+' and log in first, then click this again.');return;}var K=['Job','HomeAddress','Project','Community','Plan','HomePrice','Bed','Bath','Sqft','Milestone'];fetch('https://'+H+'/Inventory/Home/GetInventorySearch?businessUnit='+encodeURIComponent('75|Division')+'&MonthlyPayment=0&PercentOfTolerance=0&filterData=false&_='+Date.now(),{credentials:'include'}).then(function(r){if(!r.ok)throw new Error('server said '+r.status);return r.json();}).then(function(d){var s=Array.isArray(d)?d:(d&&d.Inventory)||[];if(!s.length)throw new Error('no homes came back');var rows=s.map(function(i){var o={};K.forEach(function(k){if(i[k]!==undefined&&i[k]!==null)o[k]=i[k];});return o;});var n=new Date(),p=function(x){return String(x).padStart(2,'0');};var f='drh-inventory-'+n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+'-'+p(n.getHours())+p(n.getMinutes())+'.json';var out={format:'drh-inventory-v2',pulledAt:n.toISOString(),count:rows.length,Inventory:rows};var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'}));a.download=f;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){alert('Got '+rows.length+' homes. Saved as '+f);},300);}).catch(function(e){alert('Inventory pull failed: '+e.message+'. Make sure you are logged in to homesales, then try again.');});})();`;
+    const bmLink = document.getElementById('bmLink');
+    bmLink.href = 'javascript:' + PULL_SRC;
+    bmLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('Drag this button to your bookmarks bar, then click it while you are on homesales.');
+    });
+    document.getElementById('scriptCode').textContent = PULL_SRC;
+    document.getElementById('copyBmBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText('javascript:' + PULL_SRC).then(() => {
+        const b = document.getElementById('copyBmBtn');
+        b.textContent = '✓ Copied';
+        setTimeout(() => { b.textContent = 'Copy bookmark code'; }, 2000);
+      }).catch(() => alert('Copy failed. Use the console script below instead.'));
+    });
+
+    // ---------- Saved data (this device only) ----------
+    const STORE_KEY = 'drhInv.test.v1';
+    const KEEP_FIELDS = ['Job', 'HomeAddress', 'Project', 'Community', 'Plan', 'HomePrice', 'Bed', 'Bath', 'Sqft', 'Milestone'];
+    let saved = null; // { current: {pulledAt, stampSource, fileName, Inventory}, changes, changesDismissed }
+    let changeIndex = {};
+
+    function trimItem(i) {
+      const o = {};
+      KEEP_FIELDS.forEach(k => { if (i[k] !== undefined && i[k] !== null) o[k] = i[k]; });
+      return o;
+    }
+    function keyOf(i) {
+      return (i.Project || i.Community || '') + '|' + (i.Job || i.HomeAddress || '');
+    }
+    function readSaved() {
+      try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; }
+      catch (e) { return null; }
+    }
+    function writeSaved() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(saved)); return true; }
+      catch (e) { return false; }
+    }
+
+    function fmtStamp(iso) {
+      const d = new Date(iso);
+      if (isNaN(d)) return 'unknown time';
+      const now = new Date();
+      const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const dayDiff = Math.round((startOf(now) - startOf(d)) / 86400000);
+      if (dayDiff === 0) return 'today ' + time;
+      if (dayDiff === 1) return 'yesterday ' + time;
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' }) + ' ' + time;
+    }
+    function fmtMoney(n) { return '$' + Math.round(n || 0).toLocaleString('en-US'); }
+
+    const freshPill = document.getElementById('freshPill');
+    function updateFreshness() {
+      if (!saved || !saved.current) {
+        freshPill.className = 'fresh-pill fresh-none';
+        freshPill.textContent = 'No data yet';
+        freshPill.title = '';
+        return;
+      }
+      const c = saved.current;
+      const ageH = (Date.now() - new Date(c.pulledAt).getTime()) / 3600000;
+      let cls = 'fresh-ok', suffix = '';
+      if (ageH >= 48) { cls = 'fresh-old'; suffix = ` · ${Math.floor(ageH / 24)} days old`; }
+      else if (ageH >= 24) { cls = 'fresh-warn'; suffix = ' · over a day old'; }
+      const lead = c.stampSource === 'pull' ? 'Updated ' : 'File from ';
+      freshPill.className = 'fresh-pill ' + cls;
+      freshPill.textContent = lead + fmtStamp(c.pulledAt) + suffix;
+      freshPill.title = c.stampSource === 'pull'
+        ? 'When this data was pulled from homesales'
+        : 'Older-style file with no pull time inside. This is the file\'s saved date, which may be later than the actual pull.';
+    }
+    setInterval(updateFreshness, 60000);
+
+    function computeChanges(prevRows, nextRows, prevStamp) {
+      const prev = new Map(prevRows.map(i => [keyOf(i), i]));
+      const next = new Map(nextRows.map(i => [keyOf(i), i]));
+      const added = [], gone = [], price = [];
+      next.forEach((item, k) => {
+        if (!prev.has(k)) added.push(k);
+        else {
+          const oldP = Number(prev.get(k).HomePrice) || 0, newP = Number(item.HomePrice) || 0;
+          if (oldP !== newP) price.push({ key: k, old: oldP, now: newP });
+        }
+      });
+      prev.forEach((item, k) => { if (!next.has(k)) gone.push(item); });
+      return { since: prevStamp, added, gone, price };
+    }
+
+    function buildChangeIndex() {
+      changeIndex = {};
+      const ch = saved && saved.changes;
+      if (!ch) return;
+      ch.added.forEach(k => { changeIndex[k] = { type: 'new' }; });
+      ch.price.forEach(p => { changeIndex[p.key] = { type: 'price', old: p.old, now: p.now }; });
+    }
+
+    const changeBanner = document.getElementById('changeBanner');
+    function renderChangeBanner() {
+      const ch = saved && saved.changes;
+      if (!ch || saved.changesDismissed) { changeBanner.classList.remove('show'); changeBanner.innerHTML = ''; return; }
+      const byKey = new Map((saved.current.Inventory || []).map(i => [keyOf(i), i]));
+      const parts = [];
+      if (ch.added.length) parts.push(`${ch.added.length} new`);
+      if (ch.price.length) parts.push(`${ch.price.length} price change${ch.price.length === 1 ? '' : 's'}`);
+      if (ch.gone.length) parts.push(`${ch.gone.length} gone`);
+      const since = 'Since ' + fmtStamp(ch.since);
+      const summary = parts.length ? `${since}: <strong>${parts.join(' · ')}</strong>` : `${since}: no changes`;
+      const line = (i, extra) => `<div class="change-item">Lot ${escapeHtml(String(i.Job || '—'))} · ${escapeHtml(i.HomeAddress || '')} · ${escapeHtml(i.Project || i.Community || '')}${extra ? ' · ' + extra : ''}</div>`;
+      let details = '';
+      if (ch.added.length) details += `<div class="change-group"><div class="change-group-title">New</div>${ch.added.map(k => byKey.get(k)).filter(Boolean).map(i => line(i, fmtMoney(i.HomePrice))).join('')}</div>`;
+      if (ch.price.length) details += `<div class="change-group"><div class="change-group-title">Price changes</div>${ch.price.map(p => { const i = byKey.get(p.key); if (!i) return ''; const diff = p.now - p.old; return line(i, `${fmtMoney(p.old)} → ${fmtMoney(p.now)} (${diff < 0 ? '−' : '+'}${fmtMoney(Math.abs(diff))})`); }).join('')}</div>`;
+      if (ch.gone.length) details += `<div class="change-group"><div class="change-group-title">Gone (sold or pulled)</div>${ch.gone.map(i => line(i, 'was ' + fmtMoney(i.HomePrice))).join('')}</div>`;
+      changeBanner.innerHTML = `
+        <div class="change-banner-row">
+          <span class="grow">${summary}</span>
+          ${parts.length ? '<button class="link-btn" id="changeToggle">Details</button>' : ''}
+          <button class="link-btn" id="changeDismiss" title="Hide until the next load">✕</button>
+        </div>
+        <div class="change-details" id="changeDetails">${details}</div>`;
+      changeBanner.classList.add('show');
+      const t = document.getElementById('changeToggle');
+      if (t) t.addEventListener('click', () => {
+        const d = document.getElementById('changeDetails');
+        d.classList.toggle('show');
+        t.textContent = d.classList.contains('show') ? 'Hide' : 'Details';
+      });
+      document.getElementById('changeDismiss').addEventListener('click', () => {
+        saved.changesDismissed = true; writeSaved(); renderChangeBanner();
+      });
+    }
+
+    function showDataset(note) {
+      allInventory = saved.current.Inventory;
+      const uniqueCommunities = [...new Set(allInventory.map(item => item.Project || item.Community || ''))].filter(Boolean).sort();
+      renderCommunityButtons(uniqueCommunities);
+      const uniqueTowns = [...new Set(uniqueCommunities.map(c => communityTowns[c] || ''))].filter(Boolean).sort();
+      renderTownButtons(uniqueTowns);
+      buildChangeIndex();
+      resultsInfo.textContent = `Loaded ${allInventory.length} properties` + (note ? ' · ' + note : '');
+      updateFreshness();
+      renderChangeBanner();
+      filter();
+    }
+
+    // Load JSON file
+    jsonFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        let data;
+        try {
+          data = JSON.parse(event.target.result);
+        } catch (err) {
+          alert('That file isn\'t readable inventory data: ' + err.message);
+          jsonFile.value = '';
+          return;
+        }
+        const rawRows = Array.isArray(data) ? data : (data && Array.isArray(data.Inventory) ? data.Inventory : null);
+        if (!rawRows || rawRows.length === 0) {
+          alert('No homes found in that file. Pick the drh-inventory file from homesales.');
+          jsonFile.value = '';
+          return;
+        }
+        const rows = rawRows.map(trimItem);
+        const hasPull = data && !Array.isArray(data) && data.pulledAt && !isNaN(new Date(data.pulledAt));
+        const stamp = hasPull ? new Date(data.pulledAt).toISOString() : new Date(file.lastModified || Date.now()).toISOString();
+        const incoming = { pulledAt: stamp, stampSource: hasPull ? 'pull' : 'file', fileName: file.name, Inventory: rows };
+
+        const prev = saved && saved.current;
+        if (prev && new Date(stamp) < new Date(prev.pulledAt)) {
+          const ok = confirm(`This file (${fmtStamp(stamp)}) is older than what's loaded (${fmtStamp(prev.pulledAt)}). Load it anyway?`);
+          if (!ok) { jsonFile.value = ''; return; }
+        }
+        let changes = saved ? saved.changes : null;
+        let dismissed = saved ? saved.changesDismissed : false;
+        if (prev && prev.pulledAt !== stamp) {
+          changes = computeChanges(prev.Inventory || [], rows, prev.pulledAt);
+          dismissed = false;
+        } else if (!prev) {
+          changes = null;
+        }
+        saved = { current: incoming, changes, changesDismissed: dismissed };
+        const stored = writeSaved();
+        showDataset(stored ? '' : 'couldn\'t save on this device, so it will clear when you close the page');
+        jsonFile.value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    // Render community buttons
+    function renderCommunityButtons(communities) {
+      communityList.innerHTML = '';
+      communities.forEach(community => {
+        const btn = document.createElement('button');
+        btn.className = 'community-btn';
+        btn.textContent = community;
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          toggleCommunity(community, btn);
+          filter();
+        });
+        btn.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          showCommunityModal(community);
+        });
+        btn.title = 'Click to select, Double-click for details';
+        communityList.appendChild(btn);
+      });
+
+      initSortHeaders();
+    }
+
+    // Toggle community selection (multi-select)
+    function toggleCommunity(community, btn) {
+      if (selectedCommunities.has(community)) {
+        selectedCommunities.delete(community);
+        btn.classList.remove('active');
+      } else {
+        selectedCommunities.add(community);
+        btn.classList.add('active');
+      }
+    }
+
+    // Render town buttons
+    function renderTownButtons(towns) {
+      townList.innerHTML = '';
+      towns.forEach(town => {
+        const btn = document.createElement('button');
+        btn.className = 'community-btn';
+        btn.textContent = town;
+        btn.title = 'Click to filter by town';
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          toggleTown(town, btn);
+          filter();
+        });
+        townList.appendChild(btn);
+      });
+    }
+
+    // Toggle town selection (multi-select)
+    function toggleTown(town, btn) {
+      if (selectedTowns.has(town)) {
+        selectedTowns.delete(town);
+        btn.classList.remove('active');
+      } else {
+        selectedTowns.add(town);
+        btn.classList.add('active');
+      }
+    }
+
+    // Show community modal
+    function showCommunityModal(community) {
+      modalTitle.textContent = community;
+      const data = communityData[community] || {};
+      let content = '<p>No details available for this community.</p>';
+      modalBody.innerHTML = content;
+      modal.classList.add('show');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Sorting state
+    let currentSortColumn = null;
+    let currentSortDirection = 'asc';
+
+    // Handle column header clicks for sorting
+    let sortHeadersReady = false;
+    function initSortHeaders() {
+      if (sortHeadersReady) return; // attach once; prod re-attached on every load, which cancelled clicks out
+      sortHeadersReady = true;
+      const headers = document.querySelectorAll('th[data-column]');
+      headers.forEach(header => {
+        header.addEventListener('click', () => {
+          const column = header.dataset.column;
+
+          if (currentSortColumn === column) {
+            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortColumn = column;
+            currentSortDirection = 'asc';
+          }
+
+          headers.forEach(h => {
+            h.classList.remove('sorted-asc', 'sorted-desc');
+          });
+
+          header.classList.add(currentSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+          render();
+        });
+      });
+    }
+
+    // Sort the filtered inventory
+    function sortInventory() {
+      if (!currentSortColumn) return filteredInventory;
+
+      const sorted = [...filteredInventory];
+      sorted.sort((a, b) => {
+        let aVal = a[currentSortColumn];
+        let bVal = b[currentSortColumn];
+
+        if (currentSortColumn === 'Plan') {
+          aVal = planToModel[a.Plan] || a.Plan || '';
+          bVal = planToModel[b.Plan] || b.Plan || '';
+        }
+
+        if (currentSortColumn === 'Town') {
+          aVal = communityTowns[a.Project || a.Community || ''] || '';
+          bVal = communityTowns[b.Project || b.Community || ''] || '';
+        }
+
+        if (currentSortColumn === 'MonthlyPayment') {
+          aVal = computeStdPayment(a) ?? -1;
+          bVal = computeStdPayment(b) ?? -1;
+        }
+
+        if (currentSortColumn === 'BFCPayment') {
+          aVal = computeBfcPayment(a) ?? -1;
+          bVal = computeBfcPayment(b) ?? -1;
+        }
+
+        if (currentSortColumn === 'HomePrice' || currentSortColumn === 'Bed' || currentSortColumn === 'Bath' || currentSortColumn === 'Sqft' || currentSortColumn === 'Milestone') {
+          aVal = parseFloat(aVal) || 0;
+          bVal = parseFloat(bVal) || 0;
+        }
+
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = bVal.toLowerCase();
+          return currentSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        if (currentSortDirection === 'asc') {
+          return aVal - bVal;
+        } else {
+          return bVal - aVal;
+        }
+      });
+
+      return sorted;
+    }
+
+    // Estimate a standard 30-yr (360mo) conventional P&I monthly payment
+    function computeMonthlyPayment(price, downPct, ratePct) {
+      if (!price || price <= 0) return null;
+      const rate = parseFloat(ratePct);
+      if (ratePct === '' || ratePct === null || ratePct === undefined || isNaN(rate) || rate < 0) return null;
+      const down = (downPct !== '' && downPct !== null && !isNaN(parseFloat(downPct))) ? parseFloat(downPct) : 0;
+      const loanAmt = price - (price * (down / 100));
+      if (loanAmt <= 0) return 0;
+      const monthlyRate = (rate / 100) / 12;
+      const n = 360;
+      if (monthlyRate === 0) return loanAmt / n;
+      const factor = Math.pow(1 + monthlyRate, n);
+      return loanAmt * (monthlyRate * factor) / (factor - 1);
+    }
+
+    function computeStdPayment(item) {
+      return computeMonthlyPayment(item.HomePrice || 0, downPaymentPct.value, stdRate.value);
+    }
+
+    function computeBfcPayment(item) {
+      if (bfcRate.value === '' || bfcRate.value === null || bfcRate.value === undefined) return null;
+      return computeMonthlyPayment(item.HomePrice || 0, downPaymentPct.value, bfcRate.value);
+    }
+
+    function formatPayment(val) {
+      return val != null ? '$' + Math.round(val).toLocaleString('en-US') + '/mo' : '<span style="color: #999;">—</span>';
+    }
+
+    // Filter and render
+    function filter() {
+      const search = searchInput.value.toLowerCase();
+      const min = minPrice.value ? parseFloat(minPrice.value) : 0;
+      const max = maxPrice.value ? parseFloat(maxPrice.value) : Infinity;
+      const minB = minBeds.value ? parseInt(minBeds.value) : 0;
+      const maxB = maxBeds.value ? parseInt(maxBeds.value) : Infinity;
+      const minBa = minBaths.value ? parseFloat(minBaths.value) : 0;
+      const maxBa = maxBaths.value ? parseFloat(maxBaths.value) : Infinity;
+      const minM = minMilestone.value ? parseInt(minMilestone.value) : 0;
+      const maxM = maxMilestone.value ? parseInt(maxMilestone.value) : Infinity;
+
+      filteredInventory = allInventory.filter(item => {
+        const address = (item.HomeAddress || '').toLowerCase();
+        const lot = (item.Job || '').toLowerCase();
+        const plan = (item.Plan || '').toLowerCase();
+        const modelName = (planToModel[item.Plan] || '').toLowerCase();
+        const community = item.Project || item.Community || '';
+        const town = communityTowns[community] || '';
+        const price = item.HomePrice || 0;
+        const beds = item.Bed || 0;
+        const baths = item.Bath || 0;
+        const itemMilestone = item.Milestone ? parseInt(item.Milestone) : 0;
+
+        const matchesSearch = !search || address.includes(search) || lot.includes(search) || plan.includes(search) || modelName.includes(search);
+        const matchesPrice = price >= min && price <= max;
+        const matchesBeds = beds >= minB && beds <= maxB;
+        const matchesBaths = baths >= minBa && baths <= maxBa;
+        const matchesMilestone = itemMilestone >= minM && itemMilestone <= maxM;
+        const matchesCommunity = selectedCommunities.size === 0 || selectedCommunities.has(community);
+        const matchesTown = selectedTowns.size === 0 || selectedTowns.has(town);
+
+        return matchesSearch && matchesPrice && matchesBeds && matchesBaths && matchesMilestone && matchesCommunity && matchesTown;
+      });
+
+      render();
+    }
+
+    function tagFor(item, where) {
+      const c = changeIndex[keyOf(item)];
+      if (!c) return '';
+      if (where === 'lot' && c.type === 'new') return '<span class="tag tag-new">NEW</span>';
+      if (where === 'price' && c.type === 'price') {
+        const diff = c.now - c.old;
+        return `<span class="tag ${diff < 0 ? 'tag-down' : 'tag-up'}" title="Was ${fmtMoney(c.old)}">${diff < 0 ? '▼' : '▲'} ${fmtMoney(Math.abs(diff))}</span>`;
+      }
+      return '';
+    }
+
+    // Render table
+    function render() {
+      if (filteredInventory.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
+        resultCount.textContent = '0';
+        avgPrice.textContent = '$0';
+        return;
+      }
+
+      const sortedInventory = sortInventory();
+      tableBody.innerHTML = sortedInventory.map(item => {
+        const price = item.HomePrice || 0;
+        const milestone = item.Milestone || '';
+        const milestoneStr = String(milestone).replace(/^0+/, '') || '0';
+        const milestoneStage = milestoneStages[milestoneStr] || milestoneStages[String(milestone)] || 'Unknown Stage';
+        const community = item.Project || item.Community || '';
+        const communityLink = communityLinks[community] || '#';
+        const town = communityTowns[community] || '';
+        const modelName = planToModel[item.Plan] || item.Plan || '';
+        const stdPaymentDisplay = formatPayment(computeStdPayment(item));
+        const bfcPaymentDisplay = formatPayment(computeBfcPayment(item));
+
+        let milestoneDisplay = '<span style="color: #999;">—</span>';
+        if (milestone !== '' && milestone !== null && milestone !== undefined) {
+          const milestoneNum = parseInt(milestone);
+          let badgeClass = '';
+          if (milestoneNum <= 4) {
+            badgeClass = 'presale';
+          } else if (milestoneNum >= 9) {
+            badgeClass = 'closing-soon';
+          }
+          milestoneDisplay = `<span class="milestone-badge ${badgeClass}">${milestone}<span class="milestone-tooltip">${escapeHtml(milestoneStage)}</span></span>`;
+        }
+
+        return `
+          <tr>
+            <td>${item.Job}${tagFor(item, 'lot')}</td>
+            <td>${item.HomeAddress || ''}</td>
+            <td><a href="${communityLink}" target="_blank" class="community-link" title="Visit community page">${community}</a></td>
+            <td>${town}</td>
+            <td>${modelName}</td>
+            <td>$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}${tagFor(item, 'price')}</td>
+            <td>${stdPaymentDisplay}</td>
+            <td>${bfcPaymentDisplay}</td>
+            <td>${item.Bed || ''}</td>
+            <td>${item.Bath || ''}</td>
+            <td>${item.Sqft || ''}</td>
+            <td>${milestoneDisplay}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const avgPriceValue = filteredInventory.reduce((sum, item) => sum + (item.HomePrice || 0), 0) / filteredInventory.length;
+      resultCount.textContent = filteredInventory.length;
+      avgPrice.textContent = '$' + avgPriceValue.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    }
+
+    function exportToCSV() {
+      if (filteredInventory.length === 0) {
+        alert('No data to export. Apply filters and try again.');
+        return;
+      }
+
+      const headers = ['Lot #', 'Address', 'Community', 'Town', 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
+      const sortedInventory = sortInventory();
+
+      const rows = sortedInventory.map(item => {
+        const price = item.HomePrice || 0;
+        const milestone = item.Milestone || '';
+        const community = item.Project || item.Community || '';
+        const modelName = planToModel[item.Plan] || item.Plan || '';
+        const stdPayment = computeStdPayment(item);
+        const bfcPayment = computeBfcPayment(item);
+        return [
+          item.Job || '',
+          item.HomeAddress || '',
+          community,
+          communityTowns[community] || '',
+          modelName,
+          price,
+          stdPayment != null ? Math.round(stdPayment) : '',
+          bfcPayment != null ? Math.round(bfcPayment) : '',
+          item.Bed || '',
+          item.Bath || '',
+          item.Sqft || '',
+          milestone
+        ];
+      });
+
+      const csvContent = [
+        headers.map(h => `"${h}"`).join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `drhorton-inventory-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', filter);
+    minPrice.addEventListener('input', filter);
+    maxPrice.addEventListener('input', filter);
+    minBeds.addEventListener('input', filter);
+    maxBeds.addEventListener('input', filter);
+    minBaths.addEventListener('input', filter);
+    maxBaths.addEventListener('input', filter);
+    minMilestone.addEventListener('input', filter);
+    maxMilestone.addEventListener('input', filter);
+
+    function recalcPayments() {
+      if (allInventory.length === 0) return;
+      render();
+    }
+    downPaymentPct.addEventListener('input', recalcPayments);
+    stdRate.addEventListener('input', recalcPayments);
+    bfcRate.addEventListener('input', recalcPayments);
+
+    clearFiltersBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      minPrice.value = '';
+      maxPrice.value = '';
+      minBeds.value = '';
+      maxBeds.value = '';
+      minBaths.value = '';
+      maxBaths.value = '';
+      minMilestone.value = '';
+      maxMilestone.value = '';
+      selectedCommunities.clear();
+      selectedTowns.clear();
+      document.querySelectorAll('.community-btn').forEach(btn => btn.classList.remove('active'));
+      filter();
+    });
+
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.toggle('show');
+    });
+
+    modalClose.addEventListener('click', () => {
+      modal.classList.remove('show');
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('show');
+      }
+    });
+
+    pullDataBtn.addEventListener('click', () => {
+      scriptModal.classList.add('show');
+    });
+
+    scriptModalClose.addEventListener('click', () => {
+      scriptModal.classList.remove('show');
+    });
+
+    scriptModal.addEventListener('click', (e) => {
+      if (e.target === scriptModal) {
+        scriptModal.classList.remove('show');
+      }
+    });
+
+    copyScriptBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(PULL_SRC).then(() => {
+        const originalText = copyScriptBtn.textContent;
+        copyScriptBtn.textContent = '✓ Copied!';
+        setTimeout(() => {
+          copyScriptBtn.textContent = originalText;
+        }, 2000);
+      }).catch(() => {
+        alert('Failed to copy script');
+      });
+    });
+
+    exportBtn.addEventListener('click', exportToCSV);
+
+    document.getElementById('clearSavedBtn').addEventListener('click', () => {
+      if (!confirm('Remove the saved inventory from this device? You can load a file again anytime.')) return;
+      try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      saved = null; changeIndex = {};
+      allInventory = []; filteredInventory = [];
+      communityList.innerHTML = ''; townList.innerHTML = '';
+      selectedCommunities.clear(); selectedTowns.clear();
+      tableBody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #999;">No data loaded yet</td></tr>';
+      resultCount.textContent = '0'; avgPrice.textContent = '$0';
+      resultsInfo.textContent = 'Ready to load inventory data...';
+      updateFreshness(); renderChangeBanner();
+    });
+
+    // Restore what this device last loaded
+    saved = readSaved();
+    if (saved && saved.current && Array.isArray(saved.current.Inventory) && saved.current.Inventory.length) {
+      showDataset('');
+    } else {
+      saved = null;
+      updateFreshness();
+    }
+
+    // Offline support (works once the page is opened from its web address)
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !hamburger.contains(e.target) && !e.target.closest('.community-btn')) {
+        sidebar.classList.remove('show');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && e.target.closest('.community-btn')) {
+        setTimeout(() => sidebar.classList.remove('show'), 100);
+      }
+    });
+  </script>
+</body>
+</html>
