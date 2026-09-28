@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DRH Inventory (Test)</title>
+  <title>DR Horton Inventory - Field Sales Tool</title>
   <meta name="theme-color" content="#0066cc">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="DRH Test">
+  <meta name="apple-mobile-web-app-title" content="DRH Inventory">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" href="icon-192.png">
@@ -619,7 +619,7 @@
       margin-bottom: 8px;
     }
 
-    /* ---- TEST BUILD ADDITIONS ---- */
+    /* ---- FRESHNESS, CHANGES, PULL BUTTON ---- */
     .test-badge {
       font-size: 10px; font-weight: 800; letter-spacing: 0.8px;
       color: #fff; background: #ff8c00; padding: 2px 6px; border-radius: 4px;
@@ -863,7 +863,6 @@
         <div class="header-left">
           <button class="hamburger" id="hamburger">☰</button>
           <div class="header-title">Inventory</div>
-          <span class="test-badge" title="Test copy. The official dashboard is unchanged.">TEST</span>
           <span class="fresh-pill fresh-none" id="freshPill">No data yet</span>
         </div>
         <div class="header-buttons">
@@ -1331,7 +1330,14 @@
     });
 
     // ---------- Saved data (this device only) ----------
-    const STORE_KEY = 'drhInv.test.v1';
+    const STORE_KEY = 'drhInv.v1';
+    // One-time carry-over from the test copy (same site), so nothing needs reloading after the switch.
+    try {
+      if (!localStorage.getItem(STORE_KEY) && localStorage.getItem('drhInv.test.v1')) {
+        localStorage.setItem(STORE_KEY, localStorage.getItem('drhInv.test.v1'));
+      }
+      localStorage.removeItem('drhInv.test.v1');
+    } catch (e) {}
     const KEEP_FIELDS = ['Job', 'HomeAddress', 'Project', 'Community', 'Plan', 'HomePrice', 'Bed', 'Bath', 'Sqft', 'Milestone'];
     let saved = null; // { current: {pulledAt, stampSource, fileName, Inventory}, changes, changesDismissed }
     let changeIndex = {};
@@ -2122,6 +2128,8 @@
     // Offline support (works once the page is opened from its web address)
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
+      // Retire the old test copy's offline helper if this browser has it.
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => { if (/\/test\/$/.test(r.scope)) r.unregister(); })).catch(() => {});
     }
 
     document.addEventListener('click', (e) => {

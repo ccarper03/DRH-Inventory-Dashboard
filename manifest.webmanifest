@@ -1,6 +1,6 @@
 {
-  "name": "DRH Inventory (Test)",
-  "short_name": "DRH Test",
+  "name": "DRH Inventory",
+  "short_name": "DRH Inventory",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

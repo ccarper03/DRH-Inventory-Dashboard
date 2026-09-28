@@ -1,6 +1,6 @@
-// Offline support for the TEST dashboard. Scope is this folder only.
+// Offline support for the inventory dashboard.
 // The page itself is cached; inventory data lives in the browser's own storage, never here.
-const CACHE = 'drh-inv-test-v1';
+const CACHE = 'drh-inv-v1';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
@@ -10,7 +10,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('drh-inv-test-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('drh-inv-') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
