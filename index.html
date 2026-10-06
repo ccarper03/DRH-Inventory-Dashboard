@@ -841,6 +841,13 @@
       </div>
 
       <div class="filter-section">
+        <label class="filter-label">Stories</label>
+        <label class="check-row"><input type="checkbox" class="story-cb" value="1"> 1 story</label>
+        <label class="check-row"><input type="checkbox" class="story-cb" value="2"> 2 stories</label>
+        <label class="check-row"><input type="checkbox" class="story-cb" value="3"> 3 stories</label>
+      </div>
+
+      <div class="filter-section">
         <label class="filter-label">Milestone</label>
         <input type="number" class="filter-input" id="minMilestone" placeholder="Min" min="0" step="1">
         <input type="number" class="filter-input" id="maxMilestone" placeholder="Max" min="0" step="1">
@@ -915,11 +922,12 @@
               <th data-column="Bed">Beds</th>
               <th data-column="Bath">Baths</th>
               <th data-column="Sqft">Sqft</th>
+              <th data-column="Story">Stories</th>
               <th data-column="Milestone">Milestone</th>
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="13" style="text-align: center; color: #999;">No data loaded yet</td></tr>
+            <tr><td colspan="14" style="text-align: center; color: #999;">No data loaded yet</td></tr>
           </tbody>
         </table>
       </div>
@@ -1336,7 +1344,7 @@
     const exportBtn = document.getElementById('exportBtn');
 
     // ---------- Pull script (single source for bookmark + console) ----------
-    const PULL_SRC = `(function(){var H='homesales.drhorton.com';if(location.hostname!==H){alert('Open '+H+' and log in first, then click this again.');return;}var K=['Job','HomeAddress','Project','Community','Plan','HomePrice','Bed','Bath','Sqft','Milestone'];fetch('https://'+H+'/Inventory/Home/GetInventorySearch?businessUnit='+encodeURIComponent('75|Division')+'&MonthlyPayment=0&PercentOfTolerance=0&filterData=false&_='+Date.now(),{credentials:'include'}).then(function(r){if(!r.ok)throw new Error('server said '+r.status);return r.json();}).then(function(d){var s=Array.isArray(d)?d:(d&&d.Inventory)||[];if(!s.length)throw new Error('no homes came back');var rows=s.map(function(i){var o={};K.forEach(function(k){if(i[k]!==undefined&&i[k]!==null)o[k]=i[k];});return o;});var n=new Date(),p=function(x){return String(x).padStart(2,'0');};var f='drh-inventory-'+n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+'-'+p(n.getHours())+p(n.getMinutes())+'.json';var out={format:'drh-inventory-v2',pulledAt:n.toISOString(),count:rows.length,Inventory:rows};var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'}));a.download=f;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){alert('Got '+rows.length+' homes. Saved as '+f);},300);}).catch(function(e){alert('Inventory pull failed: '+e.message+'. Make sure you are logged in to homesales, then try again.');});})();`;
+    const PULL_SRC = `(function(){var H='homesales.drhorton.com';if(location.hostname!==H){alert('Open '+H+' and log in first, then click this again.');return;}var K=['Job','HomeAddress','Project','Community','Plan','HomePrice','Bed','Bath','Sqft','Story','Milestone'];fetch('https://'+H+'/Inventory/Home/GetInventorySearch?businessUnit='+encodeURIComponent('75|Division')+'&MonthlyPayment=0&PercentOfTolerance=0&filterData=false&_='+Date.now(),{credentials:'include'}).then(function(r){if(!r.ok)throw new Error('server said '+r.status);return r.json();}).then(function(d){var s=Array.isArray(d)?d:(d&&d.Inventory)||[];if(!s.length)throw new Error('no homes came back');var rows=s.map(function(i){var o={};K.forEach(function(k){if(i[k]!==undefined&&i[k]!==null)o[k]=i[k];});return o;});var n=new Date(),p=function(x){return String(x).padStart(2,'0');};var f='drh-inventory-'+n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+'-'+p(n.getHours())+p(n.getMinutes())+'.json';var out={format:'drh-inventory-v2',pulledAt:n.toISOString(),count:rows.length,Inventory:rows};var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'}));a.download=f;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){alert('Got '+rows.length+' homes. Saved as '+f);},300);}).catch(function(e){alert('Inventory pull failed: '+e.message+'. Make sure you are logged in to homesales, then try again.');});})();`;
     const bmLink = document.getElementById('bmLink');
     bmLink.href = 'javascript:' + PULL_SRC;
     bmLink.addEventListener('click', (e) => {
@@ -1361,7 +1369,7 @@
       }
       localStorage.removeItem('drhInv.test.v1');
     } catch (e) {}
-    const KEEP_FIELDS = ['Job', 'HomeAddress', 'Project', 'Community', 'Plan', 'HomePrice', 'Bed', 'Bath', 'Sqft', 'Milestone'];
+    const KEEP_FIELDS = ['Job', 'HomeAddress', 'Project', 'Community', 'Plan', 'HomePrice', 'Bed', 'Bath', 'Sqft', 'Story', 'Milestone'];
     let saved = null; // { current: {pulledAt, stampSource, fileName, Inventory}, changes, changesDismissed }
     let changeIndex = {};
 
@@ -1701,7 +1709,7 @@
           bVal = computeBfcPayment(b) ?? -1;
         }
 
-        if (currentSortColumn === 'HomePrice' || currentSortColumn === 'Bed' || currentSortColumn === 'Bath' || currentSortColumn === 'Sqft' || currentSortColumn === 'Milestone') {
+        if (currentSortColumn === 'HomePrice' || currentSortColumn === 'Bed' || currentSortColumn === 'Bath' || currentSortColumn === 'Sqft' || currentSortColumn === 'Story' || currentSortColumn === 'Milestone') {
           aVal = parseFloat(aVal) || 0;
           bVal = parseFloat(bVal) || 0;
         }
@@ -1767,6 +1775,7 @@
       const maxBa = maxBaths.value ? parseFloat(maxBaths.value) : Infinity;
       const minM = minMilestone.value ? parseInt(minMilestone.value) : 0;
       const maxM = maxMilestone.value ? parseInt(maxMilestone.value) : Infinity;
+      const wantStories = [...document.querySelectorAll('.story-cb:checked')].map(c => parseInt(c.value));
 
       filteredInventory = allInventory.filter(item => {
         const address = (item.HomeAddress || '').toLowerCase();
@@ -1787,6 +1796,7 @@
         const matchesBeds = beds >= minB && beds <= maxB;
         const matchesBaths = baths >= minBa && baths <= maxBa;
         const matchesMilestone = itemMilestone >= minM && itemMilestone <= maxM;
+        const matchesStory = wantStories.length === 0 || wantStories.includes(parseInt(item.Story));
         const matchesCommunity = selectedCommunities.size === 0 || selectedCommunities.has(community);
         const matchesTown = selectedTowns.size === 0 || selectedTowns.has(town);
 
@@ -1796,7 +1806,7 @@
           matchesNear = d != null && d <= nearState.radius;
         }
 
-        return matchesSearch && matchesPrice && matchesPriced && matchesBeds && matchesBaths && matchesMilestone && matchesCommunity && matchesTown && matchesNear;
+        return matchesSearch && matchesPrice && matchesPriced && matchesBeds && matchesBaths && matchesMilestone && matchesStory && matchesCommunity && matchesTown && matchesNear;
       });
 
       render();
@@ -1819,7 +1829,7 @@
       document.querySelector('table').classList.toggle('show-dist', !!nearState.place);
       renderInsights();
       if (filteredInventory.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: #999; padding: 32px;">No results found</td></tr>';
         resultCount.textContent = '0';
         avgPrice.textContent = '$0';
         return;
@@ -1868,6 +1878,7 @@
             <td>${item.Bed || ''}</td>
             <td>${item.Bath || ''}</td>
             <td>${item.Sqft || ''}</td>
+            <td>${item.Story || ''}</td>
             <td>${milestoneDisplay}</td>
           </tr>
         `;
@@ -1885,7 +1896,7 @@
         return;
       }
 
-      const headers = ['Lot #', 'Address', 'Community', 'City', ...(nearState.place ? ['Miles from ' + nearState.place.label] : []), 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Milestone'];
+      const headers = ['Lot #', 'Address', 'Community', 'City', ...(nearState.place ? ['Miles from ' + nearState.place.label] : []), 'Model', 'Price', 'Payment', 'Payment (BFC)', 'Beds', 'Baths', 'Sqft', 'Stories', 'Milestone'];
       const sortedInventory = sortInventory();
 
       const rows = sortedInventory.map(item => {
@@ -1908,6 +1919,7 @@
           item.Bed || '',
           item.Bath || '',
           item.Sqft || '',
+          item.Story || '',
           milestone
         ];
       });
@@ -1938,6 +1950,7 @@
     maxBaths.addEventListener('input', filter);
     minMilestone.addEventListener('input', filter);
     maxMilestone.addEventListener('input', filter);
+    document.querySelectorAll('.story-cb').forEach(cb => cb.addEventListener('change', filter));
     const hideUnpricedEl = document.getElementById('hideUnpriced');
     hideUnpricedEl.addEventListener('change', filter);
 
@@ -2117,6 +2130,7 @@
       maxBaths.value = '';
       minMilestone.value = '';
       maxMilestone.value = '';
+      document.querySelectorAll('.story-cb').forEach(cb => { cb.checked = false; });
       selectedCommunities.clear();
       selectedTowns.clear();
       document.querySelectorAll('.community-btn').forEach(btn => btn.classList.remove('active'));
@@ -2175,7 +2189,7 @@
       allInventory = []; filteredInventory = [];
       communityList.innerHTML = ''; townList.innerHTML = '';
       selectedCommunities.clear(); selectedTowns.clear();
-      tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #999;">No data loaded yet</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: #999;">No data loaded yet</td></tr>';
       resultCount.textContent = '0'; avgPrice.textContent = '$0';
       resultsInfo.textContent = 'Ready to load inventory data...';
       updateFreshness(); renderChangeBanner();
